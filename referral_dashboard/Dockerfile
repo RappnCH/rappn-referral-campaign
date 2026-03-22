@@ -2,8 +2,8 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY . .
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY referral_dashboard/. /app
+COPY referral_dashboard/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
