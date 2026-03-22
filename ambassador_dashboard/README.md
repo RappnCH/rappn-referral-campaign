@@ -1,6 +1,6 @@
 # Ambassador Dashboard
 
-Dashboard per ambassador con accesso tramite credenziali e visualizzazione click del proprio referral.
+Dashboard per ambassador con accesso tramite credenziali, trend dei click nel tempo e cambio password self-service.
 
 ## Avvio locale
 
@@ -20,12 +20,13 @@ python3 -m http.server 5180
 - Token Bearer salvato in `sessionStorage`
 - Dati caricati da:
   - `GET /api/ambassador/me/stats`
-  - `GET /api/ambassador/me/clicks`
+  - `GET /api/ambassador/me/activity?days=30`
+  - `POST /api/ambassador/me/password`
 
 ## Sicurezza
 
 - Password ambassador hashata lato server con PBKDF2-SHA256
 - Token firmato HMAC con scadenza
-- Ogni ambassador vede solo i click del proprio `referral_code`
+- Ogni ambassador vede solo KPI e trend del proprio `referral_code`
 
 Nota: l'URL backend non è editabile da UI, viene letto solo da `AMBASSADOR_DASHBOARD_API_BASE`.

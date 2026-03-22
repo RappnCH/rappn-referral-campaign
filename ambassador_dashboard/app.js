@@ -11,14 +11,18 @@ const elements = {
   logoutBtn: document.getElementById("logoutBtn"),
   loginForm: document.getElementById("loginForm"),
   refreshBtn: document.getElementById("refreshBtn"),
+  passwordForm: document.getElementById("passwordForm"),
   referralCode: document.getElementById("referralCode"),
   password: document.getElementById("password"),
-  clicksTable: document.getElementById("clicksTable"),
+  currentPassword: document.getElementById("currentPassword"),
+  newPassword: document.getElementById("newPassword"),
+  activityChart: document.getElementById("activityChart"),
+  activityHint: document.getElementById("activityHint"),
   statusText: document.getElementById("statusText"),
   statReferral: document.getElementById("statReferral"),
   statTotal: document.getElementById("statTotal"),
-  statSwiss: document.getElementById("statSwiss"),
-  statRatio: document.getElementById("statRatio"),
+  statLast7: document.getElementById("statLast7"),
+  statPrev7: document.getElementById("statPrev7"),
 };
 
 function setStatus(text) {
@@ -122,38 +126,83 @@ function showDashboard(authenticated) {
 function renderStats(stats) {
   elements.statReferral.textContent = stats.referral_code || "-";
   elements.statTotal.textContent = stats.total_clicks ?? 0;
-  elements.statSwiss.textContent = stats.swiss_clicks ?? 0;
-  elements.statRatio.textContent = `${Math.round((stats.swiss_ratio ?? 0) * 100)}%`;
+  elements.statLast7.textContent = stats.clicks_last_7d ?? 0;
+  elements.statPrev7.textContent = stats.clicks_prev_7d ?? 0;
 }
 
-function renderClicks(clicks) {
-  elements.clicksTable.innerHTML = "";
+function fillMissingDays(series, days) {
+  const map = new Map(series.map((item) => [new Date(item.day).toISOString().slice(0, 10), item.clicks]));
+  const now = new Date();
+  const output = [];
 
-  for (const click of clicks) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${new Date(click.clicked_at).toLocaleString("it-IT")}</td>
-      <td>${click.ip_masked || "-"}</td>
-      <td>${click.is_swiss ? "Sì" : "No"}</td>
-      <td>${click.user_agent || "-"}</td>
-    `;
-    elements.clicksTable.appendChild(tr);
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const date = new Date(now);
+    date.setHours(0, 0, 0, 0);
+    date.setDate(now.getDate() - i);
+    const key = date.toISOString().slice(0, 10);
+    output.push({ day: key, clicks: map.get(key) || 0 });
   }
 
-  if (!clicks.length) {
-    elements.clicksTable.innerHTML = `<tr><td colspan="4">Nessun click registrato.</td></tr>`;
+  return output;
+}
+
+function drawActivityChart(series) {
+  const canvas = elements.activityChart;
+  const ctx = canvas.getContext("2d");
+  const width = canvas.clientWidth;
+  const height = canvas.height;
+
+  canvas.width = width;
+  ctx.clearRect(0, 0, width, height);
+
+  if (!series.length) {
+    elements.activityHint.textContent = "Nessun dato disponibile";
+    return;
   }
+
+  const values = series.map((item) => item.clicks);
+  const maxValue = Math.max(1, ...values);
+
+  const padding = { top: 20, right: 20, bottom: 30, left: 32 };
+  const chartWidth = width - padding.left - padding.right;
+  const chartHeight = height - padding.top - padding.bottom;
+
+  ctx.strokeStyle = "#e5e7eb";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padding.left, padding.top);
+  ctx.lineTo(padding.left, padding.top + chartHeight);
+  ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
+  ctx.stroke();
+
+  ctx.strokeStyle = "#1f6feb";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+
+  series.forEach((item, index) => {
+    const x = padding.left + (index / Math.max(1, series.length - 1)) * chartWidth;
+    const y = padding.top + chartHeight - (item.clicks / maxValue) * chartHeight;
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+
+  ctx.stroke();
+
+  const last = series[series.length - 1];
+  const total = series.reduce((sum, item) => sum + item.clicks, 0);
+  elements.activityHint.textContent = `Ultimo giorno: ${last.clicks} click • Totale periodo: ${total}`;
 }
 
 async function loadDashboardData() {
   setStatus("Caricamento dati...");
   try {
-    const [stats, clicks] = await Promise.all([
+    const [stats, activity] = await Promise.all([
       apiRequest("/api/ambassador/me/stats", {}, true),
-      apiRequest("/api/ambassador/me/clicks?limit=200", {}, true),
+      apiRequest("/api/ambassador/me/activity?days=30", {}, true),
     ]);
     renderStats(stats);
-    renderClicks(clicks);
+    const series = fillMissingDays(activity.series || [], activity.days || 30);
+    drawActivityChart(series);
     setStatus(`Aggiornato alle ${new Date().toLocaleTimeString("it-IT")}`);
   } catch (error) {
     if (String(error.message).includes("401") || String(error.message).includes("Sessione")) {
@@ -189,6 +238,31 @@ elements.loginForm.addEventListener("submit", async (event) => {
 
 elements.refreshBtn.addEventListener("click", async () => {
   await loadDashboardData();
+});
+
+elements.passwordForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  setStatus("Aggiornamento password...");
+
+  try {
+    await apiRequest(
+      "/api/ambassador/me/password",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          current_password: elements.currentPassword.value,
+          new_password: elements.newPassword.value,
+        }),
+      },
+      true,
+    );
+
+    elements.currentPassword.value = "";
+    elements.newPassword.value = "";
+    setStatus("Password aggiornata con successo");
+  } catch (error) {
+    setStatus(error.message);
+  }
 });
 
 elements.logoutBtn.addEventListener("click", () => {

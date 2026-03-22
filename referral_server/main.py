@@ -64,6 +64,11 @@ class AmbassadorLoginRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
 
 
+class AmbassadorSelfPasswordChange(BaseModel):
+    current_password: str = Field(min_length=8, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class TrackClickRequest(BaseModel):
     ip: str | None = None
     ip_address: str | None = None
@@ -519,6 +524,22 @@ async def ambassador_my_stats(referral_code: str = Depends(require_ambassador)):
             referral_code,
         )
 
+        recent = await connection.fetchrow(
+            """
+            SELECT
+                COUNT(*) FILTER (WHERE clicked_at >= NOW() - INTERVAL '7 days')::int AS clicks_last_7d,
+                COUNT(*) FILTER (
+                    WHERE clicked_at >= NOW() - INTERVAL '14 days'
+                      AND clicked_at < NOW() - INTERVAL '7 days'
+                )::int AS clicks_prev_7d,
+                MIN(clicked_at) AS first_click_at,
+                MAX(clicked_at) AS last_click_at
+            FROM click
+            WHERE referral_code = $1
+            """,
+            referral_code,
+        )
+
         ambassador_name = await connection.fetchval(
             "SELECT name FROM ambassador WHERE referral_code = $1",
             referral_code,
@@ -533,7 +554,74 @@ async def ambassador_my_stats(referral_code: str = Depends(require_ambassador)):
         "total_clicks": total_clicks,
         "swiss_clicks": swiss_clicks,
         "swiss_ratio": (swiss_clicks / total_clicks) if total_clicks else 0,
+        "clicks_last_7d": recent["clicks_last_7d"] or 0,
+        "clicks_prev_7d": recent["clicks_prev_7d"] or 0,
+        "first_click_at": recent["first_click_at"],
+        "last_click_at": recent["last_click_at"],
     }
+
+
+@app.get("/api/ambassador/me/activity")
+async def ambassador_my_activity(
+    days: int = 30,
+    referral_code: str = Depends(require_ambassador),
+):
+    safe_days = max(1, min(days, 120))
+
+    async with db_pool.acquire() as connection:
+        rows = await connection.fetch(
+            """
+            SELECT
+                date_trunc('day', clicked_at) AS day,
+                COUNT(*)::int AS clicks
+            FROM click
+            WHERE referral_code = $1
+              AND clicked_at >= NOW() - ($2::text || ' days')::interval
+            GROUP BY 1
+            ORDER BY 1 ASC
+            """,
+            referral_code,
+            safe_days,
+        )
+
+    series = [
+        {
+            "day": row["day"],
+            "clicks": row["clicks"],
+        }
+        for row in rows
+    ]
+
+    return {
+        "days": safe_days,
+        "series": series,
+    }
+
+
+@app.post("/api/ambassador/me/password")
+async def ambassador_change_password(
+    payload: AmbassadorSelfPasswordChange,
+    referral_code: str = Depends(require_ambassador),
+):
+    if payload.current_password == payload.new_password:
+        raise HTTPException(status_code=400, detail="La nuova password deve essere diversa da quella attuale")
+
+    async with db_pool.acquire() as connection:
+        row = await connection.fetchrow(
+            "SELECT password_hash FROM ambassador WHERE referral_code = $1",
+            referral_code,
+        )
+
+        if not row or not verify_password(payload.current_password, row["password_hash"]):
+            raise HTTPException(status_code=401, detail="Password attuale non valida")
+
+        await connection.execute(
+            "UPDATE ambassador SET password_hash = $2 WHERE referral_code = $1",
+            referral_code,
+            hash_password(payload.new_password),
+        )
+
+    return {"ok": True}
 
 
 @app.get("/api/ambassador/me/clicks")
