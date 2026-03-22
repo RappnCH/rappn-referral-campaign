@@ -282,6 +282,15 @@ async def startup():
     # Crea un pool di connessioni al database PostgreSQL
     db_pool = await asyncpg.create_pool(database_url)
 
+    # Migrazione minima automatica per compatibilità schema in produzione
+    async with db_pool.acquire() as connection:
+        await connection.execute(
+            "ALTER TABLE ambassador ADD COLUMN IF NOT EXISTS password_hash TEXT"
+        )
+        await connection.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_click_referral_ip ON click(referral_code, ip_address)"
+        )
+
 @app.on_event("shutdown")
 async def shutdown():
     if db_pool:
@@ -392,6 +401,9 @@ async def create_ambassador(payload: AmbassadorCreate):
             )
     except asyncpg.UniqueViolationError:
         raise HTTPException(status_code=409, detail="Referral code già esistente")
+    except Exception as e:
+        print(f"Errore create_ambassador: {e}")
+        raise HTTPException(status_code=500, detail="Errore interno durante la creazione referral")
 
     return {**dict(row), "total_clicks": 0, "swiss_clicks": 0}
 
