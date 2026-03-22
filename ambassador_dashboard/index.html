@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ambassador Dashboard</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="header card">
+        <div>
+          <h1>Ambassador Dashboard</h1>
+          <p>Accesso riservato con credenziali</p>
+        </div>
+        <button id="logoutBtn" class="secondary hidden">Logout</button>
+      </header>
+
+      <section id="loginSection" class="card">
+        <h2>Login</h2>
+        <form id="loginForm" class="grid">
+          <label>
+            Referral code
+            <input id="referralCode" required placeholder="es. test01" />
+          </label>
+          <label>
+            Password
+            <input id="password" type="password" required placeholder="********" />
+          </label>
+          <label>
+            Backend API URL
+            <input id="apiBase" placeholder="https://api-tua-app.up.railway.app" />
+          </label>
+          <button type="submit">Entra</button>
+        </form>
+      </section>
+
+      <section id="dashboardSection" class="hidden">
+        <section class="stats-grid">
+          <article class="card stat">
+            <h3>Referral</h3>
+            <p id="statReferral">-</p>
+          </article>
+          <article class="card stat">
+            <h3>Click Totali</h3>
+            <p id="statTotal">0</p>
+          </article>
+          <article class="card stat">
+            <h3>Click CH</h3>
+            <p id="statSwiss">0</p>
+          </article>
+          <article class="card stat">
+            <h3>% CH</h3>
+            <p id="statRatio">0%</p>
+          </article>
+        </section>
+
+        <section class="card">
+          <div class="table-header">
+            <h2>Click registrati</h2>
+            <button id="refreshBtn" class="secondary">Aggiorna</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Quando</th>
+                <th>IP (masked)</th>
+                <th>Svizzera</th>
+                <th>User Agent</th>
+              </tr>
+            </thead>
+            <tbody id="clicksTable"></tbody>
+          </table>
+        </section>
+      </section>
+
+      <p id="statusText" class="status"></p>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

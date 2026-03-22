@@ -12,6 +12,7 @@ const elements = {
   createForm: document.getElementById("createForm"),
   newCode: document.getElementById("newCode"),
   newName: document.getElementById("newName"),
+  newPassword: document.getElementById("newPassword"),
   statusText: document.getElementById("statusText"),
   totalAmbassadors: document.getElementById("totalAmbassadors"),
   totalClicks: document.getElementById("totalClicks"),
@@ -179,6 +180,7 @@ elements.createForm.addEventListener("submit", async (event) => {
 
   const referral_code = elements.newCode.value.trim();
   const name = elements.newName.value.trim();
+  const password = elements.newPassword.value;
 
   if (!referral_code) return;
 
@@ -186,11 +188,16 @@ elements.createForm.addEventListener("submit", async (event) => {
   try {
     await apiRequest("/api/ambassadors", {
       method: "POST",
-      body: JSON.stringify({ referral_code, name: name || null }),
+      body: JSON.stringify({
+        referral_code,
+        name: name || null,
+        password: password || null,
+      }),
     });
 
     elements.newCode.value = "";
     elements.newName.value = "";
+    elements.newPassword.value = "";
     await loadDashboard();
   } catch (error) {
     setStatus(error.message);

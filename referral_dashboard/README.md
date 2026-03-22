@@ -40,6 +40,8 @@ python3 -m http.server 5173
 - `POST /api/ambassadors`
 - `DELETE /api/ambassadors/{referral_code}`
 
+`POST /api/ambassadors` supporta anche `password` (opzionale, min 8) per creare subito le credenziali ambassador.
+
 ## Note backend
 
 Imposta nel backend:

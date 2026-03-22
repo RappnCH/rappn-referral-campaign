@@ -3,6 +3,7 @@ CREATE TABLE ambassador (
     id SERIAL PRIMARY KEY,
     referral_code VARCHAR(50) UNIQUE NOT NULL, -- Es: 'mario_rossi'
     name VARCHAR(100),                         -- Nome vero (opzionale)
+    password_hash TEXT,                        -- Password hash PBKDF2 per login ambassador
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
