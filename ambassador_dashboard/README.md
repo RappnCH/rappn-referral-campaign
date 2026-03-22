@@ -27,3 +27,5 @@ python3 -m http.server 5180
 - Password ambassador hashata lato server con PBKDF2-SHA256
 - Token firmato HMAC con scadenza
 - Ogni ambassador vede solo i click del proprio `referral_code`
+
+Nota: l'URL backend non è editabile da UI, viene letto solo da `AMBASSADOR_DASHBOARD_API_BASE`.

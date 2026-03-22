@@ -1,9 +1,9 @@
 const storageKeys = {
-  apiBase: "amb_dash_api_base",
   referralCode: "amb_dash_ref_code",
 };
 
 const sessionKey = "ambassador_token";
+let apiBase = "";
 
 const elements = {
   loginSection: document.getElementById("loginSection"),
@@ -13,7 +13,6 @@ const elements = {
   refreshBtn: document.getElementById("refreshBtn"),
   referralCode: document.getElementById("referralCode"),
   password: document.getElementById("password"),
-  apiBase: document.getElementById("apiBase"),
   clicksTable: document.getElementById("clicksTable"),
   statusText: document.getElementById("statusText"),
   statReferral: document.getElementById("statReferral"),
@@ -27,17 +26,15 @@ function setStatus(text) {
 }
 
 function saveSettings() {
-  localStorage.setItem(storageKeys.apiBase, elements.apiBase.value.trim());
   localStorage.setItem(storageKeys.referralCode, elements.referralCode.value.trim());
 }
 
 function loadSettings() {
-  elements.apiBase.value = localStorage.getItem(storageKeys.apiBase) || elements.apiBase.value || "http://localhost:8000";
   elements.referralCode.value = localStorage.getItem(storageKeys.referralCode) || "";
 }
 
 function getApiBase() {
-  return elements.apiBase.value.trim().replace(/\/$/, "");
+  return apiBase.trim().replace(/\/$/, "");
 }
 
 function getToken() {
@@ -69,11 +66,15 @@ async function loadEnv() {
       const value = line.slice(separator + 1).trim().replace(/^['\"]|['\"]$/g, "");
 
       if (key === "AMBASSADOR_DASHBOARD_API_BASE") {
-        elements.apiBase.value = value;
+        apiBase = value;
       }
     }
   } catch {
     // no-op
+  }
+
+  if (!apiBase) {
+    apiBase = "http://localhost:8000";
   }
 }
 

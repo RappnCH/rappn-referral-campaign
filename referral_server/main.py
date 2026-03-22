@@ -19,11 +19,16 @@ load_dotenv()
 
 app = FastAPI()
 
+def parse_origins(value: str) -> list[str]:
+    return [origin.strip() for origin in value.split(",") if origin.strip()]
+
+
 allowed_origins = [
-    origin.strip()
-    for origin in os.getenv("DASHBOARD_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
-    if origin.strip()
+    *parse_origins(os.getenv("DASHBOARD_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")),
+    *parse_origins(os.getenv("AMBASSADOR_DASHBOARD_ALLOWED_ORIGINS", "http://localhost:5180,http://127.0.0.1:5180")),
 ]
+
+allowed_origins = list(dict.fromkeys(allowed_origins))
 
 app.add_middleware(
     CORSMiddleware,
