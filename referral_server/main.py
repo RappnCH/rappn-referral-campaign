@@ -60,6 +60,7 @@ class AmbassadorLoginRequest(BaseModel):
 
 
 class TrackClickRequest(BaseModel):
+    ip: str | None = None
     ip_address: str | None = None
     user_agent: str | None = None
 
@@ -202,6 +203,7 @@ def resolve_client_ip(request: Request, ip_override: str | None = None) -> str:
     candidates = [
         ip_override,
         request.headers.get("x-client-ip"),
+        request.headers.get("x-real-ip"),
         request.headers.get("x-forwarded-for", "").split(",")[0].strip() if request.headers.get("x-forwarded-for") else None,
         request.client.host if request.client else None,
     ]
@@ -326,7 +328,7 @@ async def track_only_get(referral_code: str, request: Request):
 
 @app.post("/api/track/{referral_code}")
 async def track_only_post(referral_code: str, request: Request, payload: TrackClickRequest | None = None):
-    ip_override = payload.ip_address if payload else None
+    ip_override = (payload.ip if payload and payload.ip else payload.ip_address) if payload else None
     ua_override = payload.user_agent if payload else None
 
     ip_address = resolve_client_ip(request, ip_override=ip_override)
