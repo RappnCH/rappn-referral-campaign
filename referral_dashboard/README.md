@@ -17,6 +17,13 @@ Variabili supportate:
 - `DASHBOARD_REFERRAL_BASE` (es. `https://rappn.ch/api/download`, usata per i link referral da condividere)
 - `DASHBOARD_ADMIN_TOKEN` (se usi `ADMIN_TOKEN` nel backend)
 
+### Railway (dashboard service)
+
+Imposta nelle Variables del servizio dashboard:
+
+- `DASHBOARD_API_BASE=https://<tuo-backend>.up.railway.app`
+- `DASHBOARD_REFERRAL_BASE=https://rappn.ch/api/download`
+
 3. Da questa cartella avvia un server statico:
 
 ```bash

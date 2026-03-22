@@ -9,6 +9,7 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENV PORT=8080 \
     DASHBOARD_API_BASE=http://localhost:8000 \
+    DASHBOARD_REFERRAL_BASE= \
     DASHBOARD_ADMIN_TOKEN=
 
 EXPOSE 8080
