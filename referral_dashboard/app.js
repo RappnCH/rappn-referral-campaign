@@ -3,6 +3,8 @@ const storageKeys = {
   adminToken: "ref_dashboard_admin_token",
 };
 
+let referralBaseOverride = "";
+
 const elements = {
   apiBase: document.getElementById("apiBase"),
   adminToken: document.getElementById("adminToken"),
@@ -48,6 +50,11 @@ async function loadEnvFile() {
 
 function getApiBase() {
   return elements.apiBase.value.trim().replace(/\/$/, "");
+}
+
+function getReferralBase() {
+  const base = referralBaseOverride || getApiBase();
+  return base.trim().replace(/\/$/, "");
 }
 
 function getHeaders() {
@@ -100,7 +107,7 @@ function renderStats(stats) {
 }
 
 function buildReferralLink(code) {
-  return `${getApiBase()}/ref/${code}`;
+  return `${getReferralBase()}/ref/${code}`;
 }
 
 function renderAmbassadors(items) {
@@ -226,6 +233,10 @@ async function bootstrap() {
 
   if (env.DASHBOARD_ADMIN_TOKEN) {
     elements.adminToken.value = env.DASHBOARD_ADMIN_TOKEN;
+  }
+
+  if (env.DASHBOARD_REFERRAL_BASE) {
+    referralBaseOverride = env.DASHBOARD_REFERRAL_BASE;
   }
 
   loadSettings();

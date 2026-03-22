@@ -18,3 +18,6 @@ CREATE TABLE click (
 
 -- Indice per velocizzare le ricerche future (es. contare i clic di un ambassador)
 CREATE INDEX idx_click_referral ON click(referral_code);
+
+-- Un solo clic conteggiato per referral + IP
+CREATE UNIQUE INDEX uq_click_referral_ip ON click(referral_code, ip_address);

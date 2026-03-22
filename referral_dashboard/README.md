@@ -14,6 +14,7 @@ cp .env.example .env
 Variabili supportate:
 
 - `DASHBOARD_API_BASE` (es. `http://localhost:8000`)
+- `DASHBOARD_REFERRAL_BASE` (es. `https://rappn.ch/api/download`, usata per i link referral da condividere)
 - `DASHBOARD_ADMIN_TOKEN` (se usi `ADMIN_TOKEN` nel backend)
 
 3. Da questa cartella avvia un server statico:

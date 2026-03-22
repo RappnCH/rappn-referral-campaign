@@ -84,6 +84,7 @@ async def check_is_swiss(ip: str) -> bool:
         return False
 
 @app.get("/ref/{referral_code}")
+@app.get("/api/download/ref/{referral_code}")
 async def track_and_redirect(referral_code: str, request: Request):
     # 1. Estrai il vero IP dell'utente
     # Essendo su Railway (dietro un proxy), l'IP reale si trova in "x-forwarded-for"
@@ -96,10 +97,7 @@ async def track_and_redirect(referral_code: str, request: Request):
     # 2. Estrai il dispositivo/browser usato
     user_agent = request.headers.get("user-agent", "")
 
-    # 3. Controlla se l'IP è svizzero
-    is_swiss = await check_is_swiss(ip_address)
-
-    # 4. Salva il clic nel database (in modo asincrono)
+    # 3. Salva il clic nel database (una sola volta per referral_code + ip_address)
     try:
         async with db_pool.acquire() as connection:
             # Verifica prima se l'ambassador esiste per evitare errori di Foreign Key
@@ -108,10 +106,21 @@ async def track_and_redirect(referral_code: str, request: Request):
             )
             
             if ambassador_exists:
+                already_clicked = await connection.fetchval(
+                    "SELECT 1 FROM click WHERE referral_code = $1 AND ip_address = $2",
+                    referral_code,
+                    ip_address,
+                )
+
+                if already_clicked:
+                    return RedirectResponse(url=DOWNLOAD_URL, status_code=302)
+
+                is_swiss = await check_is_swiss(ip_address)
                 await connection.execute(
                     """
                     INSERT INTO click (referral_code, ip_address, is_swiss, user_agent)
                     VALUES ($1, $2, $3, $4)
+                    ON CONFLICT (referral_code, ip_address) DO NOTHING
                     """,
                     referral_code, ip_address, is_swiss, user_agent
                 )
@@ -121,7 +130,7 @@ async def track_and_redirect(referral_code: str, request: Request):
         # Stampiamo l'errore ma NON blocchiamo l'utente
         print(f"Errore durante il salvataggio nel database: {e}")
 
-    # 5. Esegui il Redirect istantaneo verso la tua app
+    # 4. Esegui il Redirect istantaneo verso la tua app
     return RedirectResponse(url=DOWNLOAD_URL, status_code=302)
 
 # Un endpoint di base per verificare che il server sia online
