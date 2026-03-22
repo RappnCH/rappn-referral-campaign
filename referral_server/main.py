@@ -64,11 +64,6 @@ class AmbassadorLoginRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
 
 
-class AmbassadorSelfPasswordChange(BaseModel):
-    current_password: str = Field(min_length=8, max_length=128)
-    new_password: str = Field(min_length=8, max_length=128)
-
-
 class TrackClickRequest(BaseModel):
     ip: str | None = None
     ip_address: str | None = None
@@ -596,32 +591,6 @@ async def ambassador_my_activity(
         "days": safe_days,
         "series": series,
     }
-
-
-@app.post("/api/ambassador/me/password")
-async def ambassador_change_password(
-    payload: AmbassadorSelfPasswordChange,
-    referral_code: str = Depends(require_ambassador),
-):
-    if payload.current_password == payload.new_password:
-        raise HTTPException(status_code=400, detail="La nuova password deve essere diversa da quella attuale")
-
-    async with db_pool.acquire() as connection:
-        row = await connection.fetchrow(
-            "SELECT password_hash FROM ambassador WHERE referral_code = $1",
-            referral_code,
-        )
-
-        if not row or not verify_password(payload.current_password, row["password_hash"]):
-            raise HTTPException(status_code=401, detail="Password attuale non valida")
-
-        await connection.execute(
-            "UPDATE ambassador SET password_hash = $2 WHERE referral_code = $1",
-            referral_code,
-            hash_password(payload.new_password),
-        )
-
-    return {"ok": True}
 
 
 @app.get("/api/ambassador/me/clicks")

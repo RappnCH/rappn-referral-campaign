@@ -1,6 +1,6 @@
 # Ambassador Dashboard
 
-Dashboard per ambassador con accesso tramite credenziali, trend dei click nel tempo e cambio password self-service.
+Dashboard per ambassador con accesso tramite credenziali e trend dei click nel tempo.
 
 ## Avvio locale
 
@@ -21,7 +21,6 @@ python3 -m http.server 5180
 - Dati caricati da:
   - `GET /api/ambassador/me/stats`
   - `GET /api/ambassador/me/activity?days=30`
-  - `POST /api/ambassador/me/password`
 
 ## Sicurezza
 

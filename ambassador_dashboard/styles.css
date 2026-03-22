@@ -93,10 +93,6 @@ button.secondary {
   font-size: 13px;
 }
 
-.password-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
-}
-
 .table-header {
   display: flex;
   justify-content: space-between;

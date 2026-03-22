@@ -11,11 +11,8 @@ const elements = {
   logoutBtn: document.getElementById("logoutBtn"),
   loginForm: document.getElementById("loginForm"),
   refreshBtn: document.getElementById("refreshBtn"),
-  passwordForm: document.getElementById("passwordForm"),
   referralCode: document.getElementById("referralCode"),
   password: document.getElementById("password"),
-  currentPassword: document.getElementById("currentPassword"),
-  newPassword: document.getElementById("newPassword"),
   activityChart: document.getElementById("activityChart"),
   activityHint: document.getElementById("activityHint"),
   statusText: document.getElementById("statusText"),
@@ -196,13 +193,18 @@ function drawActivityChart(series) {
 async function loadDashboardData() {
   setStatus("Caricamento dati...");
   try {
-    const [stats, activity] = await Promise.all([
-      apiRequest("/api/ambassador/me/stats", {}, true),
-      apiRequest("/api/ambassador/me/activity?days=30", {}, true),
-    ]);
+    const stats = await apiRequest("/api/ambassador/me/stats", {}, true);
     renderStats(stats);
-    const series = fillMissingDays(activity.series || [], activity.days || 30);
-    drawActivityChart(series);
+
+    try {
+      const activity = await apiRequest("/api/ambassador/me/activity?days=30", {}, true);
+      const series = fillMissingDays(activity.series || [], activity.days || 30);
+      drawActivityChart(series);
+    } catch {
+      drawActivityChart([]);
+      elements.activityHint.textContent = "Grafico temporaneamente non disponibile";
+    }
+
     setStatus(`Aggiornato alle ${new Date().toLocaleTimeString("it-IT")}`);
   } catch (error) {
     if (String(error.message).includes("401") || String(error.message).includes("Sessione")) {
@@ -238,31 +240,6 @@ elements.loginForm.addEventListener("submit", async (event) => {
 
 elements.refreshBtn.addEventListener("click", async () => {
   await loadDashboardData();
-});
-
-elements.passwordForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  setStatus("Aggiornamento password...");
-
-  try {
-    await apiRequest(
-      "/api/ambassador/me/password",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          current_password: elements.currentPassword.value,
-          new_password: elements.newPassword.value,
-        }),
-      },
-      true,
-    );
-
-    elements.currentPassword.value = "";
-    elements.newPassword.value = "";
-    setStatus("Password aggiornata con successo");
-  } catch (error) {
-    setStatus(error.message);
-  }
 });
 
 elements.logoutBtn.addEventListener("click", () => {
