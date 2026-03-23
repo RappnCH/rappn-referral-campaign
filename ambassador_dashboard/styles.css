@@ -178,8 +178,7 @@ button.secondary {
   color: #0f766e;
 }
 
-#activityChart,
-#earningsChart {
+#activityChart {
   width: 100%;
   max-width: 100%;
   background: linear-gradient(180deg, #f3fbf8 0%, #f8fcfc 100%);

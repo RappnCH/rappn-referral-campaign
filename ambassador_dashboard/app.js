@@ -26,8 +26,6 @@ const elements = {
   password: document.getElementById("password"),
   activityChart: document.getElementById("activityChart"),
   activityHint: document.getElementById("activityHint"),
-  earningsChart: document.getElementById("earningsChart"),
-  earningsHint: document.getElementById("earningsHint"),
   statusText: document.getElementById("statusText"),
   statReferral: document.getElementById("statReferral"),
   statTotal: document.getElementById("statTotal"),
@@ -57,8 +55,7 @@ const translations = {
     "stats.swissClicks": "Swiss Clicks",
     "stats.otherCountries": "Other Countries",
     "stats.earnings": "Earnings (Swiss clicks)",
-    "activity.title": "Last 30 days trend",
-    "activity.earningsTitle": "Estimated earnings last 30 days",
+    "activity.title": "Valid vs total clicks (last 30 days)",
     "errors.apiBaseRequired": "Backend API URL is required",
     "errors.sessionExpired": "Session expired, please log in again",
     "messages.noDataAvailable": "No data available",
@@ -68,8 +65,7 @@ const translations = {
     "messages.loginInProgress": "Signing in...",
     "messages.loggedOut": "Logged out",
     "messages.enterCredentials": "Enter your credentials to access",
-    "messages.lastDayTotal": "Last day: {last} clicks • Period total: {total}",
-    "messages.lastDayEarnings": "Last day: {last} • Period total: {total}",
+    "messages.validVsTotal": "Valid period clicks: {validTotal} • Total period clicks: {total}",
   },
   it: {
     "header.title": "Dashboard Ambassador Rappn",
@@ -89,8 +85,7 @@ const translations = {
     "stats.swissClicks": "Click Svizzeri",
     "stats.otherCountries": "Altri Paesi",
     "stats.earnings": "Guadagno (click CH)",
-    "activity.title": "Andamento ultimi 30 giorni",
-    "activity.earningsTitle": "Guadagno stimato ultimi 30 giorni",
+    "activity.title": "Click validi vs totali (ultimi 30 giorni)",
     "errors.apiBaseRequired": "URL API backend obbligatorio",
     "errors.sessionExpired": "Sessione scaduta, fai login",
     "messages.noDataAvailable": "Nessun dato disponibile",
@@ -100,8 +95,7 @@ const translations = {
     "messages.loginInProgress": "Login in corso...",
     "messages.loggedOut": "Logout eseguito",
     "messages.enterCredentials": "Inserisci le credenziali per accedere",
-    "messages.lastDayTotal": "Ultimo giorno: {last} click • Totale periodo: {total}",
-    "messages.lastDayEarnings": "Ultimo giorno: {last} • Totale periodo: {total}",
+    "messages.validVsTotal": "Click validi periodo: {validTotal} • Click totali periodo: {total}",
   },
   fr: {
     "header.title": "Tableau de bord ambassadeur Rappn",
@@ -121,8 +115,7 @@ const translations = {
     "stats.swissClicks": "Clics suisses",
     "stats.otherCountries": "Autres pays",
     "stats.earnings": "Gain (clics CH)",
-    "activity.title": "Tendance des 30 derniers jours",
-    "activity.earningsTitle": "Gain estimé des 30 derniers jours",
+    "activity.title": "Clics valides vs totaux (30 derniers jours)",
     "errors.apiBaseRequired": "URL API backend requise",
     "errors.sessionExpired": "Session expirée, reconnectez-vous",
     "messages.noDataAvailable": "Aucune donnée disponible",
@@ -132,8 +125,7 @@ const translations = {
     "messages.loginInProgress": "Connexion en cours...",
     "messages.loggedOut": "Déconnecté",
     "messages.enterCredentials": "Saisissez vos identifiants pour accéder",
-    "messages.lastDayTotal": "Dernier jour : {last} clics • Total période : {total}",
-    "messages.lastDayEarnings": "Dernier jour : {last} • Total période : {total}",
+    "messages.validVsTotal": "Clics valides période : {validTotal} • Clics totaux période : {total}",
   },
   de: {
     "header.title": "Rappn Ambassador-Dashboard",
@@ -153,8 +145,7 @@ const translations = {
     "stats.swissClicks": "Schweizer Klicks",
     "stats.otherCountries": "Andere Länder",
     "stats.earnings": "Verdienst (CH-Klicks)",
-    "activity.title": "Trend der letzten 30 Tage",
-    "activity.earningsTitle": "Geschätzter Verdienst der letzten 30 Tage",
+    "activity.title": "Gültige vs. gesamte Klicks (letzte 30 Tage)",
     "errors.apiBaseRequired": "Backend-API-URL erforderlich",
     "errors.sessionExpired": "Sitzung abgelaufen, bitte erneut einloggen",
     "messages.noDataAvailable": "Keine Daten verfügbar",
@@ -164,8 +155,7 @@ const translations = {
     "messages.loginInProgress": "Anmeldung läuft...",
     "messages.loggedOut": "Abgemeldet",
     "messages.enterCredentials": "Geben Sie Ihre Zugangsdaten ein",
-    "messages.lastDayTotal": "Letzter Tag: {last} Klicks • Gesamtzeitraum: {total}",
-    "messages.lastDayEarnings": "Letzter Tag: {last} • Gesamtzeitraum: {total}",
+    "messages.validVsTotal": "Gültige Klicks Zeitraum: {validTotal} • Gesamtklicks Zeitraum: {total}",
   },
 };
 
@@ -333,7 +323,6 @@ function normalizeActivitySeries(series, days) {
       {
         clicks: item.clicks || 0,
         swiss_clicks: item.swiss_clicks || 0,
-        earnings_chf: item.earnings_chf || 0,
       },
     ])
   );
@@ -345,19 +334,19 @@ function normalizeActivitySeries(series, days) {
     date.setHours(0, 0, 0, 0);
     date.setDate(now.getDate() - i);
     const key = date.toISOString().slice(0, 10);
-    const daily = map.get(key) || { clicks: 0, swiss_clicks: 0, earnings_chf: 0 };
+    const daily = map.get(key) || { clicks: 0, swiss_clicks: 0 };
     output.push({
       day: key,
       clicks: daily.clicks,
       swiss_clicks: daily.swiss_clicks,
-      earnings_chf: daily.earnings_chf,
     });
   }
 
   return output;
 }
 
-function drawLineChart(canvas, values, color) {
+function drawActivityChart(series) {
+  const canvas = elements.activityChart;
   const ctx = canvas.getContext("2d");
   const width = canvas.clientWidth;
   const height = canvas.height;
@@ -365,8 +354,15 @@ function drawLineChart(canvas, values, color) {
   canvas.width = width;
   ctx.clearRect(0, 0, width, height);
 
-  const maxValue = Math.max(1, ...values);
-  const padding = { top: 20, right: 20, bottom: 30, left: 32 };
+  if (!series.length) {
+    elements.activityHint.textContent = t("messages.noDataAvailable");
+    return;
+  }
+
+  const totals = series.map((item) => item.clicks || 0);
+  const valids = series.map((item) => item.swiss_clicks || 0);
+  const maxValue = Math.max(1, ...totals, ...valids);
+  const padding = { top: 20, right: 16, bottom: 42, left: 34 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
@@ -378,48 +374,53 @@ function drawLineChart(canvas, values, color) {
   ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
   ctx.stroke();
 
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
+  const count = series.length;
+  const slot = chartWidth / Math.max(1, count);
+  const groupWidth = Math.max(4, Math.min(22, slot * 0.7));
+  const barWidth = Math.max(2, groupWidth / 2 - 1);
 
-  values.forEach((value, index) => {
-    const x = padding.left + (index / Math.max(1, values.length - 1)) * chartWidth;
-    const y = padding.top + chartHeight - (value / maxValue) * chartHeight;
-    if (index === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+  series.forEach((item, index) => {
+    const xCenter = padding.left + slot * index + slot / 2;
+
+    const totalValue = item.clicks || 0;
+    const validValue = item.swiss_clicks || 0;
+
+    const totalHeight = (totalValue / maxValue) * chartHeight;
+    const validHeight = (validValue / maxValue) * chartHeight;
+
+    ctx.fillStyle = "#10a5a7";
+    ctx.fillRect(xCenter - barWidth - 1, padding.top + chartHeight - totalHeight, barWidth, totalHeight);
+
+    ctx.fillStyle = "#37ad3e";
+    ctx.fillRect(xCenter + 1, padding.top + chartHeight - validHeight, barWidth, validHeight);
+
+    const day = String(new Date(item.day).getDate());
+    const shouldLabel = count <= 12 || index % 5 === 0 || index === count - 1;
+    if (shouldLabel) {
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "11px Inter, system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(day, xCenter, padding.top + chartHeight + 14);
+    }
   });
 
-  ctx.stroke();
-}
+  ctx.fillStyle = "#10a5a7";
+  ctx.fillRect(padding.left, padding.top, 10, 10);
+  ctx.fillStyle = "#111827";
+  ctx.font = "12px Inter, system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("Tot", padding.left + 14, padding.top + 9);
 
-function drawActivityChart(series) {
-  if (!series.length) {
-    elements.activityHint.textContent = t("messages.noDataAvailable");
-    return;
-  }
+  ctx.fillStyle = "#37ad3e";
+  ctx.fillRect(padding.left + 46, padding.top, 10, 10);
+  ctx.fillStyle = "#111827";
+  ctx.fillText("Valid", padding.left + 60, padding.top + 9);
 
-  const values = series.map((item) => item.clicks);
-  drawLineChart(elements.activityChart, values, "#10a5a7");
-
-  const last = series[series.length - 1];
-  const total = series.reduce((sum, item) => sum + item.clicks, 0);
-  elements.activityHint.textContent = t("messages.lastDayTotal", { last: last.clicks, total });
-}
-
-function drawEarningsChart(series) {
-  if (!series.length) {
-    elements.earningsHint.textContent = t("messages.noDataAvailable");
-    return;
-  }
-
-  const values = series.map((item) => Number(item.earnings_chf || 0));
-  drawLineChart(elements.earningsChart, values, "#37ad3e");
-
-  const last = values[values.length - 1] || 0;
-  const total = values.reduce((sum, value) => sum + value, 0);
-  elements.earningsHint.textContent = t("messages.lastDayEarnings", {
-    last: formatCurrencyCHF(last),
-    total: formatCurrencyCHF(total),
+  const totalPeriodClicks = totals.reduce((sum, value) => sum + value, 0);
+  const validPeriodClicks = valids.reduce((sum, value) => sum + value, 0);
+  elements.activityHint.textContent = t("messages.validVsTotal", {
+    validTotal: validPeriodClicks,
+    total: totalPeriodClicks,
   });
 }
 
@@ -433,12 +434,9 @@ async function loadDashboardData() {
       const activity = await apiRequest("/api/ambassador/me/activity?days=30", {}, true);
       const series = normalizeActivitySeries(activity.series || [], activity.days || 30);
       drawActivityChart(series);
-      drawEarningsChart(series);
     } catch {
       drawActivityChart([]);
-      drawEarningsChart([]);
       elements.activityHint.textContent = t("messages.chartUnavailable");
-      elements.earningsHint.textContent = t("messages.chartUnavailable");
     }
 
     setStatus(t("messages.updatedAt", { time: new Date().toLocaleTimeString(getLocale()) }));
