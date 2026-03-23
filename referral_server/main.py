@@ -309,6 +309,9 @@ async def startup():
             "ALTER TABLE ambassador ADD COLUMN IF NOT EXISTS password_hash TEXT"
         )
         await connection.execute(
+            "ALTER TABLE ambassador ADD COLUMN IF NOT EXISTS payout_per_swiss_click NUMERIC(10,2) NOT NULL DEFAULT 0"
+        )
+        await connection.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS uq_click_referral_ip ON click(referral_code, ip_address)"
         )
 
@@ -591,11 +594,6 @@ async def ambassador_my_activity(
     safe_days = max(1, min(days, 120))
 
     async with db_pool.acquire() as connection:
-        payout_per_swiss_click = await connection.fetchval(
-            "SELECT payout_per_swiss_click FROM ambassador WHERE referral_code = $1",
-            referral_code,
-        )
-
         rows = await connection.fetch(
             """
             SELECT
@@ -612,21 +610,17 @@ async def ambassador_my_activity(
             safe_days,
         )
 
-    payout = float((payout_per_swiss_click or 0))
-
     series = [
         {
             "day": row["day"],
             "clicks": row["clicks"],
             "swiss_clicks": row["swiss_clicks"],
-            "earnings_chf": round((row["swiss_clicks"] or 0) * payout, 2),
         }
         for row in rows
     ]
 
     return {
         "days": safe_days,
-        "payout_per_swiss_click": payout,
         "series": series,
     }
 
