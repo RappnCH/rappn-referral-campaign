@@ -1,0 +1,2 @@
+ALTER TABLE ambassador
+ADD COLUMN IF NOT EXISTS payout_per_swiss_click NUMERIC(10,2) NOT NULL DEFAULT 0;

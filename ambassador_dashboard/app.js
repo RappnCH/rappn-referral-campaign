@@ -33,6 +33,7 @@ const elements = {
   statPrev7: document.getElementById("statPrev7"),
   statSwiss: document.getElementById("statSwiss"),
   statOther: document.getElementById("statOther"),
+  statEarnings: document.getElementById("statEarnings"),
 };
 
 const translations = {
@@ -53,6 +54,7 @@ const translations = {
     "stats.previousWeek": "Previous week",
     "stats.swissClicks": "Swiss Clicks",
     "stats.otherCountries": "Other Countries",
+    "stats.earnings": "Earnings (Swiss clicks)",
     "activity.title": "Last 30 days trend",
     "errors.apiBaseRequired": "Backend API URL is required",
     "errors.sessionExpired": "Session expired, please log in again",
@@ -82,6 +84,7 @@ const translations = {
     "stats.previousWeek": "Settimana precedente",
     "stats.swissClicks": "Click Svizzeri",
     "stats.otherCountries": "Altri Paesi",
+    "stats.earnings": "Guadagno (click CH)",
     "activity.title": "Andamento ultimi 30 giorni",
     "errors.apiBaseRequired": "URL API backend obbligatorio",
     "errors.sessionExpired": "Sessione scaduta, fai login",
@@ -111,6 +114,7 @@ const translations = {
     "stats.previousWeek": "Semaine précédente",
     "stats.swissClicks": "Clics suisses",
     "stats.otherCountries": "Autres pays",
+    "stats.earnings": "Gain (clics CH)",
     "activity.title": "Tendance des 30 derniers jours",
     "errors.apiBaseRequired": "URL API backend requise",
     "errors.sessionExpired": "Session expirée, reconnectez-vous",
@@ -140,6 +144,7 @@ const translations = {
     "stats.previousWeek": "Vorherige Woche",
     "stats.swissClicks": "Schweizer Klicks",
     "stats.otherCountries": "Andere Länder",
+    "stats.earnings": "Verdienst (CH-Klicks)",
     "activity.title": "Trend der letzten 30 Tage",
     "errors.apiBaseRequired": "Backend-API-URL erforderlich",
     "errors.sessionExpired": "Sitzung abgelaufen, bitte erneut einloggen",
@@ -186,6 +191,16 @@ function applyTranslations() {
 
 function getLocale() {
   return localeByLanguage[currentLanguage] || localeByLanguage[defaultLanguage];
+}
+
+function formatCurrencyCHF(amount) {
+  const value = Number(amount || 0);
+  return new Intl.NumberFormat(getLocale(), {
+    style: "currency",
+    currency: "CHF",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 function setStatus(text) {
@@ -291,12 +306,14 @@ function renderStats(stats) {
   const totalClicks = stats.total_clicks ?? 0;
   const swissClicks = stats.swiss_clicks ?? 0;
   const otherCountriesClicks = Math.max(0, totalClicks - swissClicks);
+  const estimatedEarnings = stats.estimated_earnings_chf ?? (swissClicks * (stats.payout_per_swiss_click ?? 0));
 
   elements.statTotal.textContent = totalClicks;
   elements.statLast7.textContent = stats.clicks_last_7d ?? 0;
   elements.statPrev7.textContent = stats.clicks_prev_7d ?? 0;
   elements.statSwiss.textContent = swissClicks;
   elements.statOther.textContent = otherCountriesClicks;
+  elements.statEarnings.textContent = formatCurrencyCHF(estimatedEarnings);
 }
 
 function fillMissingDays(series, days) {

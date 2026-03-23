@@ -13,6 +13,7 @@ const elements = {
   newCode: document.getElementById("newCode"),
   newName: document.getElementById("newName"),
   newPassword: document.getElementById("newPassword"),
+  newPayout: document.getElementById("newPayout"),
   statusText: document.getElementById("statusText"),
   totalAmbassadors: document.getElementById("totalAmbassadors"),
   totalClicks: document.getElementById("totalClicks"),
@@ -116,12 +117,14 @@ function renderAmbassadors(items) {
   for (const row of items) {
     const tr = document.createElement("tr");
     const referralLink = buildReferralLink(row.referral_code);
+    const payoutPerSwissClick = Number(row.payout_per_swiss_click ?? 0);
 
     tr.innerHTML = `
       <td>${row.referral_code}</td>
       <td>${row.name ?? "-"}</td>
       <td>${row.total_clicks ?? 0}</td>
       <td>${row.swiss_clicks ?? 0}</td>
+      <td>${payoutPerSwissClick.toFixed(2)}</td>
       <td><a href="${referralLink}" target="_blank" rel="noreferrer">Apri</a></td>
       <td>
         <div class="actions">
@@ -135,7 +138,7 @@ function renderAmbassadors(items) {
   }
 
   if (!items.length) {
-    elements.ambassadorsTable.innerHTML = `<tr><td colspan="6">Nessun referral creato.</td></tr>`;
+    elements.ambassadorsTable.innerHTML = `<tr><td colspan="7">Nessun referral creato.</td></tr>`;
   }
 }
 
@@ -181,6 +184,7 @@ elements.createForm.addEventListener("submit", async (event) => {
   const referral_code = elements.newCode.value.trim();
   const name = elements.newName.value.trim();
   const password = elements.newPassword.value;
+  const payout_per_swiss_click = Math.max(0, Number(elements.newPayout.value || 0));
 
   if (!referral_code) return;
 
@@ -192,12 +196,14 @@ elements.createForm.addEventListener("submit", async (event) => {
         referral_code,
         name: name || null,
         password: password || null,
+        payout_per_swiss_click,
       }),
     });
 
     elements.newCode.value = "";
     elements.newName.value = "";
     elements.newPassword.value = "";
+    elements.newPayout.value = "";
     await loadDashboard();
   } catch (error) {
     setStatus(error.message);

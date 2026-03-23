@@ -3,6 +3,7 @@ CREATE TABLE ambassador (
     id SERIAL PRIMARY KEY,
     referral_code VARCHAR(50) UNIQUE NOT NULL, -- Es: 'mario_rossi'
     name VARCHAR(100),                         -- Nome vero (opzionale)
+    payout_per_swiss_click NUMERIC(10,2) NOT NULL DEFAULT 0, -- Importo pagato per ogni click svizzero
     password_hash TEXT,                        -- Password hash PBKDF2 per login ambassador
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

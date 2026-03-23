@@ -6,6 +6,7 @@ import base64
 import hashlib
 import hmac
 import ipaddress
+from decimal import Decimal
 import httpx
 import asyncpg
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -53,6 +54,7 @@ class AmbassadorCreate(BaseModel):
     referral_code: str = Field(min_length=2, max_length=50)
     name: str | None = Field(default=None, max_length=100)
     password: str | None = Field(default=None, min_length=8, max_length=128)
+    payout_per_swiss_click: float = Field(default=0, ge=0)
 
 
 class AmbassadorPasswordUpdate(BaseModel):
@@ -370,12 +372,13 @@ async def list_ambassadors():
                 a.id,
                 a.referral_code,
                 a.name,
+                a.payout_per_swiss_click,
                 a.created_at,
                 COUNT(c.id)::int AS total_clicks,
                 COUNT(*) FILTER (WHERE c.is_swiss = TRUE)::int AS swiss_clicks
             FROM ambassador a
             LEFT JOIN click c ON c.referral_code = a.referral_code
-            GROUP BY a.id, a.referral_code, a.name, a.created_at
+            GROUP BY a.id, a.referral_code, a.name, a.payout_per_swiss_click, a.created_at
             ORDER BY a.created_at DESC
             """
         )
@@ -391,18 +394,20 @@ async def create_ambassador(payload: AmbassadorCreate):
 
     name = payload.name.strip() if payload.name else None
     password_hash = hash_password(payload.password) if payload.password else None
+    payout_per_swiss_click = Decimal(str(payload.payout_per_swiss_click)).quantize(Decimal("0.01"))
 
     try:
         async with db_pool.acquire() as connection:
             row = await connection.fetchrow(
                 """
-                INSERT INTO ambassador (referral_code, name, password_hash)
-                VALUES ($1, $2, $3)
-                RETURNING id, referral_code, name, created_at
+                INSERT INTO ambassador (referral_code, name, password_hash, payout_per_swiss_click)
+                VALUES ($1, $2, $3, $4)
+                RETURNING id, referral_code, name, payout_per_swiss_click, created_at
                 """,
                 referral_code,
                 name,
                 password_hash,
+                payout_per_swiss_click,
             )
     except asyncpg.UniqueViolationError:
         raise HTTPException(status_code=409, detail="Referral code già esistente")
@@ -535,19 +540,24 @@ async def ambassador_my_stats(referral_code: str = Depends(require_ambassador)):
             referral_code,
         )
 
-        ambassador_name = await connection.fetchval(
-            "SELECT name FROM ambassador WHERE referral_code = $1",
+        ambassador_row = await connection.fetchrow(
+            "SELECT name, payout_per_swiss_click FROM ambassador WHERE referral_code = $1",
             referral_code,
         )
 
     total_clicks = totals["total_clicks"] or 0
     swiss_clicks = totals["swiss_clicks"] or 0
+    payout_per_swiss_click = float((ambassador_row["payout_per_swiss_click"] if ambassador_row else 0) or 0)
+    estimated_earnings_chf = round(swiss_clicks * payout_per_swiss_click, 2)
 
     return {
         "referral_code": referral_code,
-        "name": ambassador_name,
+        "name": ambassador_row["name"] if ambassador_row else None,
         "total_clicks": total_clicks,
         "swiss_clicks": swiss_clicks,
+        "other_clicks": max(0, total_clicks - swiss_clicks),
+        "payout_per_swiss_click": payout_per_swiss_click,
+        "estimated_earnings_chf": estimated_earnings_chf,
         "swiss_ratio": (swiss_clicks / total_clicks) if total_clicks else 0,
         "clicks_last_7d": recent["clicks_last_7d"] or 0,
         "clicks_prev_7d": recent["clicks_prev_7d"] or 0,
