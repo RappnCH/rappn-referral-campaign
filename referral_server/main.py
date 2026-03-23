@@ -230,6 +230,18 @@ def resolve_client_ip(request: Request, ip_override: str | None = None) -> str:
     return "127.0.0.1"
 
 
+def log_tracking_ip_context(request: Request, resolved_ip: str, referral_code: str):
+    print(
+        "[TRACK_IP]"
+        f" referral={referral_code}"
+        f" client_host={request.client.host if request.client else '-'}"
+        f" x_forwarded_for={request.headers.get('x-forwarded-for', '-') }"
+        f" x_real_ip={request.headers.get('x-real-ip', '-') }"
+        f" x_client_ip={request.headers.get('x-client-ip', '-') }"
+        f" resolved_ip={resolved_ip}"
+    )
+
+
 async def track_click(referral_code: str, ip_address: str, user_agent: str) -> str:
     try:
         async with db_pool.acquire() as connection:
@@ -248,9 +260,11 @@ async def track_click(referral_code: str, ip_address: str, user_agent: str) -> s
             )
 
             if already_clicked:
+                print(f"[TRACK_IP] referral={referral_code} ip={ip_address} status=duplicate")
                 return "duplicate"
 
             is_swiss = await check_is_swiss(ip_address)
+            print(f"[TRACK_IP] referral={referral_code} ip={ip_address} is_swiss={is_swiss}")
             result = await connection.execute(
                 """
                 INSERT INTO click (referral_code, ip_address, is_swiss, user_agent)
@@ -323,6 +337,7 @@ async def check_is_swiss(ip: str) -> bool:
 @app.get("/api/download/ref/{referral_code}")
 async def track_and_redirect(referral_code: str, request: Request):
     ip_address = resolve_client_ip(request)
+    log_tracking_ip_context(request, ip_address, referral_code)
     user_agent = request.headers.get("user-agent", "")
     await track_click(referral_code, ip_address, user_agent)
 
@@ -332,6 +347,7 @@ async def track_and_redirect(referral_code: str, request: Request):
 @app.get("/api/track/{referral_code}")
 async def track_only_get(referral_code: str, request: Request):
     ip_address = resolve_client_ip(request)
+    log_tracking_ip_context(request, ip_address, referral_code)
     user_agent = request.headers.get("user-agent", "")
     status = await track_click(referral_code, ip_address, user_agent)
 
@@ -348,6 +364,7 @@ async def track_only_post(referral_code: str, request: Request, payload: TrackCl
     ua_override = payload.user_agent if payload else None
 
     ip_address = resolve_client_ip(request, ip_override=ip_override)
+    log_tracking_ip_context(request, ip_address, referral_code)
     user_agent = ua_override.strip() if ua_override else request.headers.get("user-agent", "")
     status = await track_click(referral_code, ip_address, user_agent)
 
