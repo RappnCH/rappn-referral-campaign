@@ -31,6 +31,8 @@ const elements = {
   statTotal: document.getElementById("statTotal"),
   statLast7: document.getElementById("statLast7"),
   statPrev7: document.getElementById("statPrev7"),
+  statSwiss: document.getElementById("statSwiss"),
+  statOther: document.getElementById("statOther"),
 };
 
 const translations = {
@@ -49,6 +51,8 @@ const translations = {
     "stats.totalPeople": "Total People",
     "stats.last7Days": "Last 7 days",
     "stats.previousWeek": "Previous week",
+    "stats.swissClicks": "Swiss Clicks",
+    "stats.otherCountries": "Other Countries",
     "activity.title": "Last 30 days trend",
     "errors.apiBaseRequired": "Backend API URL is required",
     "errors.sessionExpired": "Session expired, please log in again",
@@ -76,6 +80,8 @@ const translations = {
     "stats.totalPeople": "Persone Totali",
     "stats.last7Days": "Ultimi 7 giorni",
     "stats.previousWeek": "Settimana precedente",
+    "stats.swissClicks": "Click Svizzeri",
+    "stats.otherCountries": "Altri Paesi",
     "activity.title": "Andamento ultimi 30 giorni",
     "errors.apiBaseRequired": "URL API backend obbligatorio",
     "errors.sessionExpired": "Sessione scaduta, fai login",
@@ -103,6 +109,8 @@ const translations = {
     "stats.totalPeople": "Personnes totales",
     "stats.last7Days": "7 derniers jours",
     "stats.previousWeek": "Semaine précédente",
+    "stats.swissClicks": "Clics suisses",
+    "stats.otherCountries": "Autres pays",
     "activity.title": "Tendance des 30 derniers jours",
     "errors.apiBaseRequired": "URL API backend requise",
     "errors.sessionExpired": "Session expirée, reconnectez-vous",
@@ -130,6 +138,8 @@ const translations = {
     "stats.totalPeople": "Gesamtpersonen",
     "stats.last7Days": "Letzte 7 Tage",
     "stats.previousWeek": "Vorherige Woche",
+    "stats.swissClicks": "Schweizer Klicks",
+    "stats.otherCountries": "Andere Länder",
     "activity.title": "Trend der letzten 30 Tage",
     "errors.apiBaseRequired": "Backend-API-URL erforderlich",
     "errors.sessionExpired": "Sitzung abgelaufen, bitte erneut einloggen",
@@ -278,9 +288,15 @@ function showDashboard(authenticated) {
 
 function renderStats(stats) {
   elements.statReferral.textContent = stats.referral_code || "-";
-  elements.statTotal.textContent = stats.total_clicks ?? 0;
+  const totalClicks = stats.total_clicks ?? 0;
+  const swissClicks = stats.swiss_clicks ?? 0;
+  const otherCountriesClicks = Math.max(0, totalClicks - swissClicks);
+
+  elements.statTotal.textContent = totalClicks;
   elements.statLast7.textContent = stats.clicks_last_7d ?? 0;
   elements.statPrev7.textContent = stats.clicks_prev_7d ?? 0;
+  elements.statSwiss.textContent = swissClicks;
+  elements.statOther.textContent = otherCountriesClicks;
 }
 
 function fillMissingDays(series, days) {
