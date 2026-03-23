@@ -593,22 +593,26 @@ async def ambassador_my_activity(
 ):
     safe_days = max(1, min(days, 120))
 
-    async with db_pool.acquire() as connection:
-        rows = await connection.fetch(
-            """
-            SELECT
-                date_trunc('day', clicked_at) AS day,
-                COUNT(*)::int AS clicks,
-                COUNT(*) FILTER (WHERE is_swiss = TRUE)::int AS swiss_clicks
-            FROM click
-            WHERE referral_code = $1
-              AND clicked_at >= NOW() - ($2::text || ' days')::interval
-            GROUP BY 1
-            ORDER BY 1 ASC
-            """,
-            referral_code,
-            safe_days,
-        )
+    try:
+        async with db_pool.acquire() as connection:
+            rows = await connection.fetch(
+                """
+                SELECT
+                    clicked_at::date AS day,
+                    COUNT(*)::int AS clicks,
+                    COUNT(*) FILTER (WHERE is_swiss = TRUE)::int AS swiss_clicks
+                FROM click
+                WHERE referral_code = $1
+                  AND clicked_at >= NOW() - ($2 * INTERVAL '1 day')
+                GROUP BY clicked_at::date
+                ORDER BY clicked_at::date ASC
+                """,
+                referral_code,
+                safe_days,
+            )
+    except Exception as e:
+        print(f"Errore ambassador_my_activity: referral_code={referral_code} days={safe_days} error={e}")
+        raise HTTPException(status_code=500, detail="Errore caricamento activity")
 
     series = [
         {
