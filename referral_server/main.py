@@ -597,15 +597,30 @@ async def ambassador_my_activity(
         async with db_pool.acquire() as connection:
             rows = await connection.fetch(
                 """
+                WITH day_series AS (
+                    SELECT generate_series(
+                        (timezone('Europe/Zurich', now())::date - ($2 - 1)),
+                        timezone('Europe/Zurich', now())::date,
+                        '1 day'::interval
+                    )::date AS day_ch
+                ),
+                clicks_by_day AS (
+                    SELECT
+                        (clicked_at AT TIME ZONE 'Europe/Zurich')::date AS day_ch,
+                        COUNT(*)::int AS clicks,
+                        COUNT(*) FILTER (WHERE is_swiss = TRUE)::int AS swiss_clicks
+                    FROM click
+                    WHERE referral_code = $1
+                      AND (clicked_at AT TIME ZONE 'Europe/Zurich')::date >= timezone('Europe/Zurich', now())::date - ($2 - 1)
+                    GROUP BY 1
+                )
                 SELECT
-                    clicked_at::date AS day,
-                    COUNT(*)::int AS clicks,
-                    COUNT(*) FILTER (WHERE is_swiss = TRUE)::int AS swiss_clicks
-                FROM click
-                WHERE referral_code = $1
-                  AND clicked_at >= NOW() - ($2 * INTERVAL '1 day')
-                GROUP BY clicked_at::date
-                ORDER BY clicked_at::date ASC
+                    to_char(ds.day_ch, 'YYYY-MM-DD') AS day,
+                    COALESCE(cbd.clicks, 0)::int AS clicks,
+                    COALESCE(cbd.swiss_clicks, 0)::int AS swiss_clicks
+                FROM day_series ds
+                LEFT JOIN clicks_by_day cbd ON cbd.day_ch = ds.day_ch
+                ORDER BY ds.day_ch ASC
                 """,
                 referral_code,
                 safe_days,

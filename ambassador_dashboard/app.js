@@ -193,6 +193,16 @@ function getLocale() {
   return localeByLanguage[currentLanguage] || localeByLanguage[defaultLanguage];
 }
 
+function getZurichTimeString() {
+  return new Intl.DateTimeFormat(getLocale(), {
+    timeZone: "Europe/Zurich",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date());
+}
+
 function formatCurrencyCHF(amount) {
   const value = Number(amount || 0);
   return new Intl.NumberFormat(getLocale(), {
@@ -316,33 +326,12 @@ function renderStats(stats) {
   elements.statEarnings.textContent = formatCurrencyCHF(estimatedEarnings);
 }
 
-function normalizeActivitySeries(series, days) {
-  const map = new Map(
-    series.map((item) => [
-      new Date(item.day).toISOString().slice(0, 10),
-      {
-        clicks: item.clicks || 0,
-        swiss_clicks: item.swiss_clicks || 0,
-      },
-    ])
-  );
-  const now = new Date();
-  const output = [];
-
-  for (let i = days - 1; i >= 0; i -= 1) {
-    const date = new Date(now);
-    date.setHours(0, 0, 0, 0);
-    date.setDate(now.getDate() - i);
-    const key = date.toISOString().slice(0, 10);
-    const daily = map.get(key) || { clicks: 0, swiss_clicks: 0 };
-    output.push({
-      day: key,
-      clicks: daily.clicks,
-      swiss_clicks: daily.swiss_clicks,
-    });
-  }
-
-  return output;
+function normalizeActivitySeries(series) {
+  return (series || []).map((item) => ({
+    day: String(item.day || ""),
+    clicks: Number(item.clicks || 0),
+    swiss_clicks: Number(item.swiss_clicks || 0),
+  }));
 }
 
 function drawActivityChart(series) {
@@ -394,7 +383,7 @@ function drawActivityChart(series) {
     ctx.fillStyle = "#37ad3e";
     ctx.fillRect(xCenter + 1, padding.top + chartHeight - validHeight, barWidth, validHeight);
 
-    const day = String(new Date(item.day).getDate());
+    const day = String(item.day).slice(-2).replace(/^0/, "") || "0";
     const shouldLabel = count <= 12 || index % 5 === 0 || index === count - 1;
     if (shouldLabel) {
       ctx.fillStyle = "#6b7280";
@@ -432,14 +421,14 @@ async function loadDashboardData() {
 
     try {
       const activity = await apiRequest("/api/ambassador/me/activity?days=30", {}, true);
-      const series = normalizeActivitySeries(activity.series || [], activity.days || 30);
+      const series = normalizeActivitySeries(activity.series || []);
       drawActivityChart(series);
     } catch {
       drawActivityChart([]);
       elements.activityHint.textContent = t("messages.chartUnavailable");
     }
 
-    setStatus(t("messages.updatedAt", { time: new Date().toLocaleTimeString(getLocale()) }));
+    setStatus(t("messages.updatedAt", { time: getZurichTimeString() }));
   } catch (error) {
     if (String(error.message).includes("401") || String(error.message).includes(t("errors.sessionExpired"))) {
       clearToken();
