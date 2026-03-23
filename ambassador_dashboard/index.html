@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,51 +10,60 @@
     <main class="container">
       <header class="header card">
         <div>
-          <h1>Ambassador Dashboard</h1>
-          <p>Accesso riservato con credenziali</p>
+          <h1 data-i18n="header.title">Ambassador Dashboard</h1>
+          <p data-i18n="header.subtitle">Restricted access with credentials</p>
         </div>
-        <button id="logoutBtn" class="secondary hidden">Logout</button>
+        <div class="header-actions">
+          <label for="languageSelect" class="language-label" data-i18n="header.languageLabel">Language</label>
+          <select id="languageSelect" class="language-select" aria-label="Language">
+            <option value="en">English</option>
+            <option value="it">Italiano</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+          </select>
+          <button id="logoutBtn" class="secondary hidden" data-i18n="actions.logout">Logout</button>
+        </div>
       </header>
 
       <section id="loginSection" class="card">
-        <h2>Login</h2>
+        <h2 data-i18n="login.title">Login</h2>
         <form id="loginForm" class="grid">
           <label>
-            Referral code
-            <input id="referralCode" required placeholder="es. test01" />
+            <span data-i18n="login.referralCodeLabel">Referral code</span>
+            <input id="referralCode" required placeholder="e.g. test01" data-i18n-placeholder="login.referralCodePlaceholder" />
           </label>
           <label>
-            Password
+            <span data-i18n="login.passwordLabel">Password</span>
             <input id="password" type="password" required placeholder="********" />
           </label>
-          <button type="submit">Entra</button>
+          <button type="submit" data-i18n="actions.login">Sign in</button>
         </form>
       </section>
 
       <section id="dashboardSection" class="hidden">
         <section class="stats-grid">
           <article class="card stat">
-            <h3>Referral</h3>
+            <h3 data-i18n="stats.referral">Referral</h3>
             <p id="statReferral">-</p>
           </article>
           <article class="card stat">
-            <h3>Persone Totali</h3>
+            <h3 data-i18n="stats.totalPeople">Total People</h3>
             <p id="statTotal">0</p>
           </article>
           <article class="card stat">
-            <h3>Ultimi 7 giorni</h3>
+            <h3 data-i18n="stats.last7Days">Last 7 days</h3>
             <p id="statLast7">0</p>
           </article>
           <article class="card stat">
-            <h3>Settimana precedente</h3>
+            <h3 data-i18n="stats.previousWeek">Previous week</h3>
             <p id="statPrev7">0</p>
           </article>
         </section>
 
         <section class="card">
           <div class="table-header">
-            <h2>Andamento ultimi 30 giorni</h2>
-            <button id="refreshBtn" class="secondary">Aggiorna</button>
+            <h2 data-i18n="activity.title">Last 30 days trend</h2>
+            <button id="refreshBtn" class="secondary" data-i18n="actions.refresh">Refresh</button>
           </div>
           <canvas id="activityChart" height="220"></canvas>
           <p id="activityHint" class="hint"></p>

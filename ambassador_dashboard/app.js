@@ -1,14 +1,25 @@
 const storageKeys = {
   referralCode: "amb_dash_ref_code",
+  language: "amb_dash_language",
 };
 
 const sessionKey = "ambassador_token";
 let apiBase = "";
+const defaultLanguage = "en";
+const supportedLanguages = ["en", "it", "fr", "de"];
+const localeByLanguage = {
+  en: "en-US",
+  it: "it-IT",
+  fr: "fr-FR",
+  de: "de-DE",
+};
+let currentLanguage = defaultLanguage;
 
 const elements = {
   loginSection: document.getElementById("loginSection"),
   dashboardSection: document.getElementById("dashboardSection"),
   logoutBtn: document.getElementById("logoutBtn"),
+  languageSelect: document.getElementById("languageSelect"),
   loginForm: document.getElementById("loginForm"),
   refreshBtn: document.getElementById("refreshBtn"),
   referralCode: document.getElementById("referralCode"),
@@ -21,6 +32,151 @@ const elements = {
   statLast7: document.getElementById("statLast7"),
   statPrev7: document.getElementById("statPrev7"),
 };
+
+const translations = {
+  en: {
+    "header.title": "Ambassador Dashboard",
+    "header.subtitle": "Restricted access with credentials",
+    "header.languageLabel": "Language",
+    "login.title": "Login",
+    "login.referralCodeLabel": "Referral code",
+    "login.referralCodePlaceholder": "e.g. test01",
+    "login.passwordLabel": "Password",
+    "actions.login": "Sign in",
+    "actions.logout": "Logout",
+    "actions.refresh": "Refresh",
+    "stats.referral": "Referral",
+    "stats.totalPeople": "Total People",
+    "stats.last7Days": "Last 7 days",
+    "stats.previousWeek": "Previous week",
+    "activity.title": "Last 30 days trend",
+    "errors.apiBaseRequired": "Backend API URL is required",
+    "errors.sessionExpired": "Session expired, please log in again",
+    "messages.noDataAvailable": "No data available",
+    "messages.chartUnavailable": "Chart temporarily unavailable",
+    "messages.loadingData": "Loading data...",
+    "messages.updatedAt": "Updated at {time}",
+    "messages.loginInProgress": "Signing in...",
+    "messages.loggedOut": "Logged out",
+    "messages.enterCredentials": "Enter your credentials to access",
+    "messages.lastDayTotal": "Last day: {last} clicks • Period total: {total}",
+  },
+  it: {
+    "header.title": "Dashboard Ambassador",
+    "header.subtitle": "Accesso riservato con credenziali",
+    "header.languageLabel": "Lingua",
+    "login.title": "Accesso",
+    "login.referralCodeLabel": "Codice referral",
+    "login.referralCodePlaceholder": "es. test01",
+    "login.passwordLabel": "Password",
+    "actions.login": "Entra",
+    "actions.logout": "Logout",
+    "actions.refresh": "Aggiorna",
+    "stats.referral": "Referral",
+    "stats.totalPeople": "Persone Totali",
+    "stats.last7Days": "Ultimi 7 giorni",
+    "stats.previousWeek": "Settimana precedente",
+    "activity.title": "Andamento ultimi 30 giorni",
+    "errors.apiBaseRequired": "URL API backend obbligatorio",
+    "errors.sessionExpired": "Sessione scaduta, fai login",
+    "messages.noDataAvailable": "Nessun dato disponibile",
+    "messages.chartUnavailable": "Grafico temporaneamente non disponibile",
+    "messages.loadingData": "Caricamento dati...",
+    "messages.updatedAt": "Aggiornato alle {time}",
+    "messages.loginInProgress": "Login in corso...",
+    "messages.loggedOut": "Logout eseguito",
+    "messages.enterCredentials": "Inserisci le credenziali per accedere",
+    "messages.lastDayTotal": "Ultimo giorno: {last} click • Totale periodo: {total}",
+  },
+  fr: {
+    "header.title": "Tableau de bord ambassadeur",
+    "header.subtitle": "Accès restreint avec identifiants",
+    "header.languageLabel": "Langue",
+    "login.title": "Connexion",
+    "login.referralCodeLabel": "Code de parrainage",
+    "login.referralCodePlaceholder": "ex. test01",
+    "login.passwordLabel": "Mot de passe",
+    "actions.login": "Se connecter",
+    "actions.logout": "Déconnexion",
+    "actions.refresh": "Actualiser",
+    "stats.referral": "Parrainage",
+    "stats.totalPeople": "Personnes totales",
+    "stats.last7Days": "7 derniers jours",
+    "stats.previousWeek": "Semaine précédente",
+    "activity.title": "Tendance des 30 derniers jours",
+    "errors.apiBaseRequired": "URL API backend requise",
+    "errors.sessionExpired": "Session expirée, reconnectez-vous",
+    "messages.noDataAvailable": "Aucune donnée disponible",
+    "messages.chartUnavailable": "Graphique temporairement indisponible",
+    "messages.loadingData": "Chargement des données...",
+    "messages.updatedAt": "Mis à jour à {time}",
+    "messages.loginInProgress": "Connexion en cours...",
+    "messages.loggedOut": "Déconnecté",
+    "messages.enterCredentials": "Saisissez vos identifiants pour accéder",
+    "messages.lastDayTotal": "Dernier jour : {last} clics • Total période : {total}",
+  },
+  de: {
+    "header.title": "Ambassador-Dashboard",
+    "header.subtitle": "Geschützter Zugang mit Anmeldedaten",
+    "header.languageLabel": "Sprache",
+    "login.title": "Anmeldung",
+    "login.referralCodeLabel": "Referral-Code",
+    "login.referralCodePlaceholder": "z. B. test01",
+    "login.passwordLabel": "Passwort",
+    "actions.login": "Einloggen",
+    "actions.logout": "Abmelden",
+    "actions.refresh": "Aktualisieren",
+    "stats.referral": "Referral",
+    "stats.totalPeople": "Gesamtpersonen",
+    "stats.last7Days": "Letzte 7 Tage",
+    "stats.previousWeek": "Vorherige Woche",
+    "activity.title": "Trend der letzten 30 Tage",
+    "errors.apiBaseRequired": "Backend-API-URL erforderlich",
+    "errors.sessionExpired": "Sitzung abgelaufen, bitte erneut einloggen",
+    "messages.noDataAvailable": "Keine Daten verfügbar",
+    "messages.chartUnavailable": "Diagramm vorübergehend nicht verfügbar",
+    "messages.loadingData": "Daten werden geladen...",
+    "messages.updatedAt": "Aktualisiert um {time}",
+    "messages.loginInProgress": "Anmeldung läuft...",
+    "messages.loggedOut": "Abgemeldet",
+    "messages.enterCredentials": "Geben Sie Ihre Zugangsdaten ein",
+    "messages.lastDayTotal": "Letzter Tag: {last} Klicks • Gesamtzeitraum: {total}",
+  },
+};
+
+function t(key, vars = {}) {
+  const template = translations[currentLanguage]?.[key] ?? translations[defaultLanguage]?.[key] ?? key;
+  return Object.entries(vars).reduce((output, [name, value]) => output.replaceAll(`{${name}}`, String(value)), template);
+}
+
+function getLanguage() {
+  const stored = localStorage.getItem(storageKeys.language);
+  return supportedLanguages.includes(stored) ? stored : defaultLanguage;
+}
+
+function setLanguage(language) {
+  currentLanguage = supportedLanguages.includes(language) ? language : defaultLanguage;
+  localStorage.setItem(storageKeys.language, currentLanguage);
+  document.documentElement.lang = currentLanguage;
+  if (elements.languageSelect) elements.languageSelect.value = currentLanguage;
+  applyTranslations();
+}
+
+function applyTranslations() {
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    const key = node.dataset.i18n;
+    node.textContent = t(key);
+  });
+
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    const key = node.dataset.i18nPlaceholder;
+    node.placeholder = t(key);
+  });
+}
+
+function getLocale() {
+  return localeByLanguage[currentLanguage] || localeByLanguage[defaultLanguage];
+}
 
 function setStatus(text) {
   elements.statusText.textContent = text;
@@ -81,7 +237,7 @@ async function loadEnv() {
 
 async function apiRequest(path, options = {}, withAuth = false) {
   const apiBase = getApiBase();
-  if (!apiBase) throw new Error("Backend API URL obbligatorio");
+  if (!apiBase) throw new Error(t("errors.apiBaseRequired"));
 
   const headers = {
     "Content-Type": "application/json",
@@ -90,7 +246,7 @@ async function apiRequest(path, options = {}, withAuth = false) {
 
   if (withAuth) {
     const token = getToken();
-    if (!token) throw new Error("Sessione scaduta, fai login");
+    if (!token) throw new Error(t("errors.sessionExpired"));
     headers.Authorization = `Bearer ${token}`;
   }
 
@@ -153,7 +309,7 @@ function drawActivityChart(series) {
   ctx.clearRect(0, 0, width, height);
 
   if (!series.length) {
-    elements.activityHint.textContent = "Nessun dato disponibile";
+    elements.activityHint.textContent = t("messages.noDataAvailable");
     return;
   }
 
@@ -187,11 +343,11 @@ function drawActivityChart(series) {
 
   const last = series[series.length - 1];
   const total = series.reduce((sum, item) => sum + item.clicks, 0);
-  elements.activityHint.textContent = `Ultimo giorno: ${last.clicks} click • Totale periodo: ${total}`;
+  elements.activityHint.textContent = t("messages.lastDayTotal", { last: last.clicks, total });
 }
 
 async function loadDashboardData() {
-  setStatus("Caricamento dati...");
+  setStatus(t("messages.loadingData"));
   try {
     const stats = await apiRequest("/api/ambassador/me/stats", {}, true);
     renderStats(stats);
@@ -202,12 +358,12 @@ async function loadDashboardData() {
       drawActivityChart(series);
     } catch {
       drawActivityChart([]);
-      elements.activityHint.textContent = "Grafico temporaneamente non disponibile";
+      elements.activityHint.textContent = t("messages.chartUnavailable");
     }
 
-    setStatus(`Aggiornato alle ${new Date().toLocaleTimeString("it-IT")}`);
+    setStatus(t("messages.updatedAt", { time: new Date().toLocaleTimeString(getLocale()) }));
   } catch (error) {
-    if (String(error.message).includes("401") || String(error.message).includes("Sessione")) {
+    if (String(error.message).includes("401") || String(error.message).includes(t("errors.sessionExpired"))) {
       clearToken();
       showDashboard(false);
     }
@@ -218,7 +374,7 @@ async function loadDashboardData() {
 elements.loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   saveSettings();
-  setStatus("Login in corso...");
+  setStatus(t("messages.loginInProgress"));
 
   try {
     const data = await apiRequest("/api/ambassador/login", {
@@ -245,11 +401,20 @@ elements.refreshBtn.addEventListener("click", async () => {
 elements.logoutBtn.addEventListener("click", () => {
   clearToken();
   showDashboard(false);
-  setStatus("Logout eseguito");
+  setStatus(t("messages.loggedOut"));
+});
+
+elements.languageSelect.addEventListener("change", async (event) => {
+  setLanguage(event.target.value);
+
+  if (!elements.dashboardSection.classList.contains("hidden") && getToken()) {
+    await loadDashboardData();
+  }
 });
 
 async function bootstrap() {
   await loadEnv();
+  setLanguage(getLanguage());
   loadSettings();
 
   if (getToken()) {
@@ -257,7 +422,7 @@ async function bootstrap() {
     await loadDashboardData();
   } else {
     showDashboard(false);
-    setStatus("Inserisci le credenziali per accedere");
+    setStatus(t("messages.enterCredentials"));
   }
 }
 

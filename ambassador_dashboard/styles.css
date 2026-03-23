@@ -29,6 +29,25 @@ body {
   justify-content: space-between;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.language-label {
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.language-select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  background: #fff;
+}
+
 h1, h2, h3, p {
   margin: 0;
 }
@@ -119,6 +138,12 @@ td {
 }
 
 @media (max-width: 900px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
   .grid {
     grid-template-columns: 1fr;
   }
