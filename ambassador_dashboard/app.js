@@ -38,7 +38,7 @@ const elements = {
 
 const translations = {
   en: {
-    "header.title": "Ambassador Dashboard",
+    "header.title": "Rappn Ambassador Dashboard",
     "header.subtitle": "Restricted access with credentials",
     "header.languageLabel": "Language",
     "login.title": "Login",
@@ -68,7 +68,7 @@ const translations = {
     "messages.lastDayTotal": "Last day: {last} clicks • Period total: {total}",
   },
   it: {
-    "header.title": "Dashboard Ambassador",
+    "header.title": "Dashboard Ambassador Rappn",
     "header.subtitle": "Accesso riservato con credenziali",
     "header.languageLabel": "Lingua",
     "login.title": "Accesso",
@@ -98,7 +98,7 @@ const translations = {
     "messages.lastDayTotal": "Ultimo giorno: {last} click • Totale periodo: {total}",
   },
   fr: {
-    "header.title": "Tableau de bord ambassadeur",
+    "header.title": "Tableau de bord ambassadeur Rappn",
     "header.subtitle": "Accès restreint avec identifiants",
     "header.languageLabel": "Langue",
     "login.title": "Connexion",
@@ -128,7 +128,7 @@ const translations = {
     "messages.lastDayTotal": "Dernier jour : {last} clics • Total période : {total}",
   },
   de: {
-    "header.title": "Ambassador-Dashboard",
+    "header.title": "Rappn Ambassador-Dashboard",
     "header.subtitle": "Geschützter Zugang mit Anmeldedaten",
     "header.languageLabel": "Sprache",
     "login.title": "Anmeldung",
@@ -353,7 +353,7 @@ function drawActivityChart(series) {
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
-  ctx.strokeStyle = "#e5e7eb";
+  ctx.strokeStyle = "#d3e8df";
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(padding.left, padding.top);
@@ -361,7 +361,7 @@ function drawActivityChart(series) {
   ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
   ctx.stroke();
 
-  ctx.strokeStyle = "#1f6feb";
+  ctx.strokeStyle = "#10a5a7";
   ctx.lineWidth = 2;
   ctx.beginPath();
 
