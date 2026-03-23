@@ -591,11 +591,17 @@ async def ambassador_my_activity(
     safe_days = max(1, min(days, 120))
 
     async with db_pool.acquire() as connection:
+        payout_per_swiss_click = await connection.fetchval(
+            "SELECT payout_per_swiss_click FROM ambassador WHERE referral_code = $1",
+            referral_code,
+        )
+
         rows = await connection.fetch(
             """
             SELECT
                 date_trunc('day', clicked_at) AS day,
-                COUNT(*)::int AS clicks
+                COUNT(*)::int AS clicks,
+                COUNT(*) FILTER (WHERE is_swiss = TRUE)::int AS swiss_clicks
             FROM click
             WHERE referral_code = $1
               AND clicked_at >= NOW() - ($2::text || ' days')::interval
@@ -606,16 +612,21 @@ async def ambassador_my_activity(
             safe_days,
         )
 
+    payout = float((payout_per_swiss_click or 0))
+
     series = [
         {
             "day": row["day"],
             "clicks": row["clicks"],
+            "swiss_clicks": row["swiss_clicks"],
+            "earnings_chf": round((row["swiss_clicks"] or 0) * payout, 2),
         }
         for row in rows
     ]
 
     return {
         "days": safe_days,
+        "payout_per_swiss_click": payout,
         "series": series,
     }
 

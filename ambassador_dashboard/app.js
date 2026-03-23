@@ -26,6 +26,8 @@ const elements = {
   password: document.getElementById("password"),
   activityChart: document.getElementById("activityChart"),
   activityHint: document.getElementById("activityHint"),
+  earningsChart: document.getElementById("earningsChart"),
+  earningsHint: document.getElementById("earningsHint"),
   statusText: document.getElementById("statusText"),
   statReferral: document.getElementById("statReferral"),
   statTotal: document.getElementById("statTotal"),
@@ -56,6 +58,7 @@ const translations = {
     "stats.otherCountries": "Other Countries",
     "stats.earnings": "Earnings (Swiss clicks)",
     "activity.title": "Last 30 days trend",
+    "activity.earningsTitle": "Estimated earnings last 30 days",
     "errors.apiBaseRequired": "Backend API URL is required",
     "errors.sessionExpired": "Session expired, please log in again",
     "messages.noDataAvailable": "No data available",
@@ -66,6 +69,7 @@ const translations = {
     "messages.loggedOut": "Logged out",
     "messages.enterCredentials": "Enter your credentials to access",
     "messages.lastDayTotal": "Last day: {last} clicks • Period total: {total}",
+    "messages.lastDayEarnings": "Last day: {last} • Period total: {total}",
   },
   it: {
     "header.title": "Dashboard Ambassador Rappn",
@@ -86,6 +90,7 @@ const translations = {
     "stats.otherCountries": "Altri Paesi",
     "stats.earnings": "Guadagno (click CH)",
     "activity.title": "Andamento ultimi 30 giorni",
+    "activity.earningsTitle": "Guadagno stimato ultimi 30 giorni",
     "errors.apiBaseRequired": "URL API backend obbligatorio",
     "errors.sessionExpired": "Sessione scaduta, fai login",
     "messages.noDataAvailable": "Nessun dato disponibile",
@@ -96,6 +101,7 @@ const translations = {
     "messages.loggedOut": "Logout eseguito",
     "messages.enterCredentials": "Inserisci le credenziali per accedere",
     "messages.lastDayTotal": "Ultimo giorno: {last} click • Totale periodo: {total}",
+    "messages.lastDayEarnings": "Ultimo giorno: {last} • Totale periodo: {total}",
   },
   fr: {
     "header.title": "Tableau de bord ambassadeur Rappn",
@@ -116,6 +122,7 @@ const translations = {
     "stats.otherCountries": "Autres pays",
     "stats.earnings": "Gain (clics CH)",
     "activity.title": "Tendance des 30 derniers jours",
+    "activity.earningsTitle": "Gain estimé des 30 derniers jours",
     "errors.apiBaseRequired": "URL API backend requise",
     "errors.sessionExpired": "Session expirée, reconnectez-vous",
     "messages.noDataAvailable": "Aucune donnée disponible",
@@ -126,6 +133,7 @@ const translations = {
     "messages.loggedOut": "Déconnecté",
     "messages.enterCredentials": "Saisissez vos identifiants pour accéder",
     "messages.lastDayTotal": "Dernier jour : {last} clics • Total période : {total}",
+    "messages.lastDayEarnings": "Dernier jour : {last} • Total période : {total}",
   },
   de: {
     "header.title": "Rappn Ambassador-Dashboard",
@@ -146,6 +154,7 @@ const translations = {
     "stats.otherCountries": "Andere Länder",
     "stats.earnings": "Verdienst (CH-Klicks)",
     "activity.title": "Trend der letzten 30 Tage",
+    "activity.earningsTitle": "Geschätzter Verdienst der letzten 30 Tage",
     "errors.apiBaseRequired": "Backend-API-URL erforderlich",
     "errors.sessionExpired": "Sitzung abgelaufen, bitte erneut einloggen",
     "messages.noDataAvailable": "Keine Daten verfügbar",
@@ -156,6 +165,7 @@ const translations = {
     "messages.loggedOut": "Abgemeldet",
     "messages.enterCredentials": "Geben Sie Ihre Zugangsdaten ein",
     "messages.lastDayTotal": "Letzter Tag: {last} Klicks • Gesamtzeitraum: {total}",
+    "messages.lastDayEarnings": "Letzter Tag: {last} • Gesamtzeitraum: {total}",
   },
 };
 
@@ -316,8 +326,17 @@ function renderStats(stats) {
   elements.statEarnings.textContent = formatCurrencyCHF(estimatedEarnings);
 }
 
-function fillMissingDays(series, days) {
-  const map = new Map(series.map((item) => [new Date(item.day).toISOString().slice(0, 10), item.clicks]));
+function normalizeActivitySeries(series, days) {
+  const map = new Map(
+    series.map((item) => [
+      new Date(item.day).toISOString().slice(0, 10),
+      {
+        clicks: item.clicks || 0,
+        swiss_clicks: item.swiss_clicks || 0,
+        earnings_chf: item.earnings_chf || 0,
+      },
+    ])
+  );
   const now = new Date();
   const output = [];
 
@@ -326,14 +345,19 @@ function fillMissingDays(series, days) {
     date.setHours(0, 0, 0, 0);
     date.setDate(now.getDate() - i);
     const key = date.toISOString().slice(0, 10);
-    output.push({ day: key, clicks: map.get(key) || 0 });
+    const daily = map.get(key) || { clicks: 0, swiss_clicks: 0, earnings_chf: 0 };
+    output.push({
+      day: key,
+      clicks: daily.clicks,
+      swiss_clicks: daily.swiss_clicks,
+      earnings_chf: daily.earnings_chf,
+    });
   }
 
   return output;
 }
 
-function drawActivityChart(series) {
-  const canvas = elements.activityChart;
+function drawLineChart(canvas, values, color) {
   const ctx = canvas.getContext("2d");
   const width = canvas.clientWidth;
   const height = canvas.height;
@@ -341,14 +365,7 @@ function drawActivityChart(series) {
   canvas.width = width;
   ctx.clearRect(0, 0, width, height);
 
-  if (!series.length) {
-    elements.activityHint.textContent = t("messages.noDataAvailable");
-    return;
-  }
-
-  const values = series.map((item) => item.clicks);
   const maxValue = Math.max(1, ...values);
-
   const padding = { top: 20, right: 20, bottom: 30, left: 32 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
@@ -361,22 +378,49 @@ function drawActivityChart(series) {
   ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
   ctx.stroke();
 
-  ctx.strokeStyle = "#10a5a7";
+  ctx.strokeStyle = color;
   ctx.lineWidth = 2;
   ctx.beginPath();
 
-  series.forEach((item, index) => {
-    const x = padding.left + (index / Math.max(1, series.length - 1)) * chartWidth;
-    const y = padding.top + chartHeight - (item.clicks / maxValue) * chartHeight;
+  values.forEach((value, index) => {
+    const x = padding.left + (index / Math.max(1, values.length - 1)) * chartWidth;
+    const y = padding.top + chartHeight - (value / maxValue) * chartHeight;
     if (index === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   });
 
   ctx.stroke();
+}
+
+function drawActivityChart(series) {
+  if (!series.length) {
+    elements.activityHint.textContent = t("messages.noDataAvailable");
+    return;
+  }
+
+  const values = series.map((item) => item.clicks);
+  drawLineChart(elements.activityChart, values, "#10a5a7");
 
   const last = series[series.length - 1];
   const total = series.reduce((sum, item) => sum + item.clicks, 0);
   elements.activityHint.textContent = t("messages.lastDayTotal", { last: last.clicks, total });
+}
+
+function drawEarningsChart(series) {
+  if (!series.length) {
+    elements.earningsHint.textContent = t("messages.noDataAvailable");
+    return;
+  }
+
+  const values = series.map((item) => Number(item.earnings_chf || 0));
+  drawLineChart(elements.earningsChart, values, "#37ad3e");
+
+  const last = values[values.length - 1] || 0;
+  const total = values.reduce((sum, value) => sum + value, 0);
+  elements.earningsHint.textContent = t("messages.lastDayEarnings", {
+    last: formatCurrencyCHF(last),
+    total: formatCurrencyCHF(total),
+  });
 }
 
 async function loadDashboardData() {
@@ -387,11 +431,14 @@ async function loadDashboardData() {
 
     try {
       const activity = await apiRequest("/api/ambassador/me/activity?days=30", {}, true);
-      const series = fillMissingDays(activity.series || [], activity.days || 30);
+      const series = normalizeActivitySeries(activity.series || [], activity.days || 30);
       drawActivityChart(series);
+      drawEarningsChart(series);
     } catch {
       drawActivityChart([]);
+      drawEarningsChart([]);
       elements.activityHint.textContent = t("messages.chartUnavailable");
+      elements.earningsHint.textContent = t("messages.chartUnavailable");
     }
 
     setStatus(t("messages.updatedAt", { time: new Date().toLocaleTimeString(getLocale()) }));
