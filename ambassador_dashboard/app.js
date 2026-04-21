@@ -334,13 +334,21 @@ function normalizeActivitySeries(series) {
   }));
 }
 
+let lastActivitySeries = [];
+
 function drawActivityChart(series) {
+  lastActivitySeries = series;
   const canvas = elements.activityChart;
   const ctx = canvas.getContext("2d");
-  const width = canvas.clientWidth;
-  const height = canvas.height;
+  const width = canvas.clientWidth || canvas.parentElement.clientWidth || 320;
+  const cssHeight = canvas.clientHeight || 220;
+  const dpr = window.devicePixelRatio || 1;
 
-  canvas.width = width;
+  canvas.width = width * dpr;
+  canvas.height = cssHeight * dpr;
+  canvas.style.height = `${cssHeight}px`;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const height = cssHeight;
   ctx.clearRect(0, 0, width, height);
 
   if (!series.length) {
@@ -477,6 +485,16 @@ elements.languageSelect.addEventListener("change", async (event) => {
   if (!elements.dashboardSection.classList.contains("hidden") && getToken()) {
     await loadDashboardData();
   }
+});
+
+let resizeTimer = null;
+window.addEventListener("resize", () => {
+  if (resizeTimer) clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (!elements.dashboardSection.classList.contains("hidden") && lastActivitySeries.length) {
+      drawActivityChart(lastActivitySeries);
+    }
+  }, 150);
 });
 
 async function bootstrap() {

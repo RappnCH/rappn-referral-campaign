@@ -120,13 +120,13 @@ function renderAmbassadors(items) {
     const payoutPerSwissClick = Number(row.payout_per_swiss_click ?? 0);
 
     tr.innerHTML = `
-      <td>${row.referral_code}</td>
-      <td>${row.name ?? "-"}</td>
-      <td>${row.total_clicks ?? 0}</td>
-      <td>${row.swiss_clicks ?? 0}</td>
-      <td>${payoutPerSwissClick.toFixed(2)}</td>
-      <td><a href="${referralLink}" target="_blank" rel="noreferrer">Apri</a></td>
-      <td>
+      <td data-label="Code">${row.referral_code}</td>
+      <td data-label="Nome">${row.name ?? "-"}</td>
+      <td data-label="Click">${row.total_clicks ?? 0}</td>
+      <td data-label="CH">${row.swiss_clicks ?? 0}</td>
+      <td data-label="CHF/click CH">${payoutPerSwissClick.toFixed(2)}</td>
+      <td data-label="Link"><a href="${referralLink}" target="_blank" rel="noreferrer">Apri</a></td>
+      <td class="actions-cell">
         <div class="actions">
           <button data-copy="${referralLink}">Copia</button>
           <button class="danger" data-delete="${row.referral_code}">Elimina</button>
