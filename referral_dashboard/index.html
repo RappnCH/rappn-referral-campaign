@@ -1,89 +1,1092 @@
 <!doctype html>
-<html lang="it">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Referral Dashboard</title>
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <main class="container">
-      <header class="header">
-        <div>
-          <h1>Referral Dashboard</h1>
-          <p>Gestione ambassador e monitoraggio click referral</p>
-        </div>
-        <button id="refreshBtn" class="secondary">Aggiorna</button>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<meta name="description" content="Rappn referral board: every download link by channel and language." />
+<style>html,body{margin:0;padding:0;min-height:100%}</style>
+<title>Rappn Referral Board</title>
+</head>
+<body>
+<style>
+/* ─────────────────────────────  tokens  ───────────────────────────── */
+:root {
+  /* neutrals, pulled slightly green so the page belongs to Rappn's world */
+  --ground:        #F4F7F4;
+  --surface:       #FFFFFF;
+  --surface-sunk:  #EDF2EE;
+  --hairline:      #DBE4DD;
+  --hairline-soft: #E8EEE9;
+  --ink:           #0D1512;
+  --ink-2:         #46564E;
+  --ink-3:         #75857C;
+
+  /* the one bold hue: the Rappn logo gradient */
+  --accent:        #18A19A;
+  --accent-warm:   #3AAA35;
+  --accent-sunk:   #D3EAE7;
+  --accent-ink:    #0F6F6A;
+  --bar-soft:      #A6D8D3;
+
+  --warn:          #A8660B;
+  --warn-bg:       #FDF3E2;
+  --warn-line:     #EBD3A8;
+  --critical:      #A93B2C;
+  --critical-bg:   #FBEDEB;
+  --critical-line: #EFC9C2;
+
+  --shadow: 0 1px 2px rgba(13,21,18,.05), 0 6px 20px -12px rgba(13,21,18,.22);
+
+  --grotesque: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text",
+               "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", "Segoe UI Mono",
+          "Roboto Mono", Menlo, Consolas, monospace;
+
+  --r-s: 7px;  --r-m: 12px;  --r-l: 18px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground:        #0B0F0D;
+    --surface:       #151B18;
+    --surface-sunk:  #1D2521;
+    --hairline:      #2A342E;
+    --hairline-soft: #222B26;
+    --ink:           #E9F0EB;
+    --ink-2:         #A3B2A9;
+    --ink-3:         #74857B;
+    --accent:        #2BC3BA;
+    --accent-warm:   #4FC148;
+    --accent-sunk:   #163A38;
+    --accent-ink:    #7FE0D8;
+    --bar-soft:      #2F6E69;
+    --warn:          #E2A64B;
+    --warn-bg:       #2A2113;
+    --warn-line:     #4A3A1C;
+    --critical:      #E88A7B;
+    --critical-bg:   #2C1815;
+    --critical-line: #4C2620;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.8);
+    color-scheme: dark;
+  }
+}
+/* the viewer's own toggle must win over the OS preference, both ways */
+:root[data-theme="dark"] {
+  --ground:#0B0F0D; --surface:#151B18; --surface-sunk:#1D2521; --hairline:#2A342E;
+  --hairline-soft:#222B26; --ink:#E9F0EB; --ink-2:#A3B2A9; --ink-3:#74857B;
+  --accent:#2BC3BA; --accent-warm:#4FC148; --accent-sunk:#163A38; --accent-ink:#7FE0D8;
+  --bar-soft:#2F6E69;
+  --warn:#E2A64B; --warn-bg:#2A2113; --warn-line:#4A3A1C;
+  --critical:#E88A7B; --critical-bg:#2C1815; --critical-line:#4C2620;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.8);
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  --ground:#F4F7F4; --surface:#FFFFFF; --surface-sunk:#EDF2EE; --hairline:#DBE4DD;
+  --hairline-soft:#E8EEE9; --ink:#0D1512; --ink-2:#46564E; --ink-3:#75857C;
+  --accent:#18A19A; --accent-warm:#3AAA35; --accent-sunk:#D3EAE7; --accent-ink:#0F6F6A;
+  --bar-soft:#A6D8D3;
+  --warn:#A8660B; --warn-bg:#FDF3E2; --warn-line:#EBD3A8;
+  --critical:#A93B2C; --critical-bg:#FBEDEB; --critical-line:#EFC9C2;
+  --shadow: 0 1px 2px rgba(13,21,18,.05), 0 6px 20px -12px rgba(13,21,18,.22);
+  color-scheme: light;
+}
+
+/* ─────────────────────────────  base  ───────────────────────────── */
+* { box-sizing: border-box; }
+/* author display rules outrank the UA sheet, so [hidden] has to be restated */
+[hidden] { display: none !important; }
+
+.rb {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--grotesque);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100%;
+  padding: 22px 18px 64px;
+}
+.rb-wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+.rb h1, .rb h2, .rb h3, .rb p, .rb figure { margin: 0; }
+.rb h1, .rb h2, .rb h3 { text-wrap: balance; }
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.code {
+  font-family: var(--mono); font-size: 12.5px; letter-spacing: -.01em;
+  color: var(--ink-2); font-weight: 600;
+}
+
+.rb button, .rb select, .rb input, .rb textarea { font: inherit; color: inherit; }
+.rb :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+/* ─────────────────────────────  masthead  ───────────────────────────── */
+.masthead {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+}
+.masthead h1 {
+  font-size: clamp(24px, 5vw, 31px); font-weight: 680; letter-spacing: -.022em; line-height: 1.12;
+}
+.masthead .sub { color: var(--ink-2); font-size: 13.5px; margin-top: 5px; max-width: 58ch; }
+.brandbar {
+  width: 34px; height: 4px; border-radius: 3px; margin-bottom: 11px;
+  background: linear-gradient(90deg, var(--accent-warm), var(--accent));
+}
+
+.sourcechip {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--hairline); background: var(--surface);
+  border-radius: 999px; padding: 6px 13px 6px 10px;
+  font-size: 12px; color: var(--ink-2); box-shadow: var(--shadow);
+}
+.sourcechip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); flex: none; }
+.sourcechip[data-mode="live"]     .dot { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-sunk); }
+.sourcechip[data-mode="pasted"]   .dot { background: var(--accent-warm); box-shadow: 0 0 0 3px var(--accent-sunk); }
+.sourcechip[data-mode="snapshot"] .dot { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-bg); }
+.sourcechip b { font-weight: 620; color: var(--ink); }
+
+/* ─────────────────────────────  summary strip  ───────────────────────────── */
+.tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 11px; }
+@media (min-width: 720px) { .tiles { grid-template-columns: repeat(4, 1fr); } }
+
+.tile {
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: var(--r-m); padding: 14px 15px 13px;
+  display: flex; flex-direction: column; gap: 3px; box-shadow: var(--shadow);
+}
+.tile .v { font-family: var(--mono); font-variant-numeric: tabular-nums;
+  font-size: clamp(25px, 6.5vw, 33px); font-weight: 600; letter-spacing: -.03em; line-height: 1.05; }
+.tile .foot { font-size: 11.5px; color: var(--ink-3); }
+.tile.is-accent .v { color: var(--accent-ink); }
+
+/* ─────────────────────────────  alarm  ───────────────────────────── */
+.alarm {
+  border-radius: var(--r-m); padding: 15px 17px;
+  display: flex; gap: 13px; align-items: flex-start;
+  background: var(--critical-bg); border: 1px solid var(--critical-line);
+}
+.alarm.is-warn { background: var(--warn-bg); border-color: var(--warn-line); }
+.alarm .mark { flex: none; width: 20px; height: 20px; color: var(--critical); margin-top: 1px; }
+.alarm.is-warn .mark { color: var(--warn); }
+.alarm h3 { font-size: 14.5px; font-weight: 650; letter-spacing: -.012em; color: var(--critical); }
+.alarm.is-warn h3 { color: var(--warn); }
+.alarm p { font-size: 13px; color: var(--ink-2); margin-top: 4px !important; max-width: 74ch; }
+.alarm .codes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.alarm .codes span {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600;
+  border: 1px dashed var(--critical-line); color: var(--critical);
+  border-radius: 5px; padding: 2px 7px; background: var(--surface);
+}
+.alarm.is-warn .codes span { border-color: var(--warn-line); color: var(--warn); }
+
+/* ─────────────────────────────  controls  ───────────────────────────── */
+.controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.segmented {
+  display: inline-flex; background: var(--surface-sunk); border: 1px solid var(--hairline);
+  border-radius: 9px; padding: 3px; gap: 3px;
+}
+.segmented button {
+  border: 0; background: transparent; cursor: pointer; border-radius: 6px;
+  padding: 6px 13px; font-size: 12.5px; font-weight: 560; color: var(--ink-2);
+  transition: background .14s ease, color .14s ease;
+}
+.segmented button[aria-pressed="true"] {
+  background: var(--surface); color: var(--ink);
+  box-shadow: 0 1px 2px rgba(13,21,18,.10);
+}
+.segmented button:hover:not([aria-pressed="true"]) { color: var(--ink); }
+.spacer { flex: 1 1 auto; }
+
+.ghostbtn {
+  border: 1px solid var(--hairline); background: var(--surface); cursor: pointer;
+  border-radius: 8px; padding: 7px 13px; font-size: 12.5px; font-weight: 560; color: var(--ink-2);
+  display: inline-flex; align-items: center; gap: 7px;
+  transition: border-color .14s ease, color .14s ease;
+}
+.ghostbtn:hover { border-color: var(--accent); color: var(--ink); }
+.ghostbtn svg { width: 14px; height: 14px; }
+
+/* ─────────────────────────────  platform panels  ───────────────────────────── */
+.board { display: grid; grid-template-columns: 1fr; gap: 13px; }
+@media (min-width: 900px) { .board { grid-template-columns: 1fr 1fr; } }
+
+.panel {
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: var(--r-l); padding: 16px 17px 15px; box-shadow: var(--shadow);
+  display: flex; flex-direction: column; gap: 13px;
+}
+.panel.is-idle { background: var(--surface); border-style: dashed; box-shadow: none; }
+/* only the channel that does not exist yet gets a dimmed mark; a real channel
+   with zero clicks keeps its colours, the dashed border carries the message */
+.panel.is-reserved .phead .glyph { filter: grayscale(1); opacity: .5; }
+
+.phead { display: flex; align-items: center; gap: 11px; }
+.glyph { width: 30px; height: 30px; flex: none; border-radius: 8px; display: block; }
+.phead .name { font-size: 15.5px; font-weight: 640; letter-spacing: -.015em; line-height: 1.2; }
+.phead .meta { font-size: 11.5px; color: var(--ink-3); margin-top: 1px; }
+.phead .total { margin-left: auto; text-align: right; }
+.phead .total .n {
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+  font-size: 21px; font-weight: 620; letter-spacing: -.03em; line-height: 1;
+}
+.phead .total .l { font-size: 10.5px; color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; }
+
+.rows { display: flex; flex-direction: column; gap: 9px; }
+.row { display: grid; grid-template-columns: 62px 1fr auto; align-items: center; gap: 11px; }
+.row .lang {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: var(--ink-2);
+  letter-spacing: .02em;
+}
+.row .lang em { font-style: normal; color: var(--ink-3); font-weight: 500; }
+
+.track {
+  position: relative; height: 22px; border-radius: 6px;
+  background: var(--surface-sunk); overflow: hidden;
+}
+.track.is-empty { background: transparent; border: 1px dashed var(--hairline); }
+.fill { position: absolute; inset: 0 auto 0 0; display: flex; border-radius: 6px; overflow: hidden;
+  animation: grow .5s cubic-bezier(.22,.7,.3,1) both; transform-origin: left center; }
+.fill .ch  { background: linear-gradient(90deg, var(--accent-warm), var(--accent)); }
+.fill .oth { background: var(--bar-soft); }
+@keyframes grow { from { transform: scaleX(.03); opacity: .4; } to { transform: scaleX(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .fill { animation: none; } }
+
+.row .val {
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+  font-size: 13.5px; font-weight: 620; min-width: 54px; text-align: right; letter-spacing: -.02em;
+}
+.row .val .ch { color: var(--accent-ink); }
+.row .val .zero { color: var(--ink-3); font-weight: 500; }
+
+.row.is-missing .lang { color: var(--critical); }
+.row.is-missing .track { border-color: var(--critical-line); }
+
+.panel .note {
+  font-size: 11.5px; color: var(--ink-3); border-top: 1px solid var(--hairline-soft);
+  padding-top: 10px;
+}
+.panel .note b { color: var(--warn); font-weight: 620; }
+
+/* ─────────────────────────────  ranked view  ───────────────────────────── */
+.ranked { display: flex; flex-direction: column; gap: 2px; }
+.rank-row {
+  display: grid; grid-template-columns: 26px 30px 1fr auto; align-items: center; gap: 11px;
+  padding: 9px 4px; border-bottom: 1px solid var(--hairline-soft);
+}
+.rank-row:last-child { border-bottom: 0; }
+.rank-row .pos {
+  font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.rank-row .glyph { width: 22px; height: 22px; border-radius: 6px; }
+.rank-row .body { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.rank-row .label { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.rank-row .label .who { font-size: 13px; font-weight: 580; letter-spacing: -.01em; }
+.rank-row .track { height: 12px; border-radius: 4px; }
+.rank-row .fill { border-radius: 4px; }
+.rank-row .val { min-width: 66px; }
+
+/* ─────────────────────────────  detail grid  ───────────────────────────── */
+.card {
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: var(--r-l); box-shadow: var(--shadow); overflow: hidden;
+}
+.card > header {
+  padding: 15px 17px; border-bottom: 1px solid var(--hairline-soft);
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.card > header h2 { font-size: 15px; font-weight: 640; letter-spacing: -.015em; }
+.card > header .hint { font-size: 11.5px; color: var(--ink-3); }
+
+.dgrid { display: block; }
+.dhead {
+  display: none;
+  grid-template-columns: 1.35fr .95fr .62fr .62fr .62fr 34px;
+  gap: 10px; padding: 9px 17px; background: var(--surface-sunk);
+  border-bottom: 1px solid var(--hairline);
+}
+.dhead button {
+  border: 0; background: transparent; cursor: pointer; padding: 0; text-align: left;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-3); font-weight: 620; display: inline-flex; align-items: center; gap: 4px;
+}
+.dhead button:hover { color: var(--ink); }
+.dhead button[data-active="true"] { color: var(--accent-ink); }
+.dhead .r { justify-content: flex-end; text-align: right; }
+
+.drow {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 10px;
+  padding: 12px 17px; border-bottom: 1px solid var(--hairline-soft); align-items: center;
+}
+.drow:last-child { border-bottom: 0; }
+.drow .c-who { grid-column: 1; grid-row: 1; display: flex; align-items: center; gap: 9px; min-width: 0; }
+.drow .c-who .glyph { width: 20px; height: 20px; border-radius: 5px; }
+.drow .c-who .stack { min-width: 0; }
+.drow .c-who .n { font-size: 13.5px; font-weight: 580; letter-spacing: -.01em; }
+.drow > .copybtn { grid-column: 2; grid-row: 1; }
+.drow .c-link { grid-column: 1 / -1; grid-row: 2; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.drow .c-link a {
+  font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); text-decoration: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.drow .c-link a:hover { color: var(--accent-ink); text-decoration: underline; }
+.drow .nums { grid-column: 1 / -1; grid-row: 3; display: flex; gap: 20px; margin-top: 2px; }
+.drow .nums div { text-align: left; }
+.drow .nums .k { font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .07em; }
+.drow .nums .v { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 13.5px; font-weight: 600; }
+.drow.is-missing { background: var(--critical-bg); }
+
+.copybtn {
+  border: 1px solid var(--hairline); background: var(--surface); cursor: pointer;
+  border-radius: 6px; width: 27px; height: 27px; flex: none; color: var(--ink-3);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.copybtn:hover { border-color: var(--accent); color: var(--accent-ink); }
+.copybtn svg { width: 13px; height: 13px; }
+.copybtn.done { color: var(--accent-ink); border-color: var(--accent); }
+
+@media (min-width: 860px) {
+  .dhead { display: grid; }
+  .drow {
+    grid-template-columns: 1.35fr .95fr .62fr .62fr .62fr 34px;
+    gap: 10px; align-items: center;
+  }
+  .drow .c-who   { grid-column: auto; grid-row: auto; }
+  .drow .c-link  { grid-column: auto; grid-row: auto; }
+  .drow > .copybtn { grid-column: auto; grid-row: auto; }
+  .drow .nums { grid-column: auto; grid-row: auto; display: contents; margin-top: 0; }
+  .drow .nums div { text-align: right; }
+  .drow .nums .k { display: none; }
+}
+
+.statuspill {
+  font-family: var(--mono); font-size: 10px; font-weight: 650; letter-spacing: .05em;
+  text-transform: uppercase; border-radius: 4px; padding: 2px 6px; white-space: nowrap;
+}
+.statuspill.live    { color: var(--accent-ink); background: var(--accent-sunk); }
+.statuspill.quiet   { color: var(--ink-3);      background: var(--surface-sunk); }
+.statuspill.missing { color: var(--critical);   background: var(--critical-bg); }
+.statuspill.soon    { color: var(--warn);       background: var(--warn-bg); }
+
+/* ─────────────────────────────  connect drawer  ───────────────────────────── */
+.connect { border: 1px solid var(--hairline); border-radius: var(--r-l); background: var(--surface); box-shadow: var(--shadow); }
+.connect > summary {
+  cursor: pointer; padding: 14px 17px; font-size: 13.5px; font-weight: 600;
+  display: flex; align-items: center; gap: 9px; list-style: none;
+}
+.connect > summary::-webkit-details-marker { display: none; }
+.connect > summary .chev { width: 13px; height: 13px; color: var(--ink-3); transition: transform .18s ease; }
+.connect[open] > summary .chev { transform: rotate(90deg); }
+.connect .inner { padding: 0 17px 17px; display: flex; flex-direction: column; gap: 13px; border-top: 1px solid var(--hairline-soft); padding-top: 14px; }
+.connect p { font-size: 13px; color: var(--ink-2); max-width: 76ch; }
+.connect code {
+  font-family: var(--mono); font-size: 12px; background: var(--surface-sunk);
+  padding: 1.5px 5px; border-radius: 4px; color: var(--ink);
+}
+.connect pre {
+  margin: 0; font-family: var(--mono); font-size: 11.5px; line-height: 1.65;
+  background: var(--surface-sunk); border: 1px solid var(--hairline);
+  border-radius: 9px; padding: 12px 13px; overflow-x: auto; color: var(--ink-2);
+}
+.connect textarea {
+  width: 100%; min-height: 108px; resize: vertical; font-family: var(--mono); font-size: 12px;
+  border: 1px solid var(--hairline); border-radius: 9px; padding: 11px 12px;
+  background: var(--surface-sunk); color: var(--ink); line-height: 1.55;
+}
+.connect textarea::placeholder { color: var(--ink-3); }
+.primarybtn {
+  border: 0; cursor: pointer; border-radius: 8px; padding: 9px 16px;
+  font-size: 13px; font-weight: 620; color: #fff;
+  background: linear-gradient(90deg, var(--accent-warm), var(--accent));
+}
+.primarybtn:hover { filter: brightness(1.06); }
+.parse-msg { font-size: 12.5px; font-weight: 560; }
+.parse-msg.ok  { color: var(--accent-ink); }
+.parse-msg.bad { color: var(--critical); }
+
+.colophon { font-size: 11.5px; color: var(--ink-3); line-height: 1.7; max-width: 80ch; }
+.colophon b { color: var(--ink-2); font-weight: 600; }
+</style>
+
+<!-- platform marks, drawn inline (no remote assets can load here) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="g-ig" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#FFC65C"/>
+      <stop offset="28%" stop-color="#F58529"/>
+      <stop offset="62%" stop-color="#DD2A7B"/>
+      <stop offset="100%" stop-color="#8134AF"/>
+    </linearGradient>
+    <linearGradient id="g-rappn" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3AAA35"/><stop offset="100%" stop-color="#18A19A"/>
+    </linearGradient>
+
+    <symbol id="ic-instagram" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="9" fill="url(#g-ig)"/>
+      <rect x="8" y="8" width="16" height="16" rx="5" fill="none" stroke="#fff" stroke-width="2"/>
+      <circle cx="16" cy="16" r="4.1" fill="none" stroke="#fff" stroke-width="2"/>
+      <circle cx="21.4" cy="10.7" r="1.35" fill="#fff"/>
+    </symbol>
+
+    <symbol id="ic-facebook" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="9" fill="#1877F2"/>
+      <path d="M20.4 17.1l.62-4.02h-3.86V10.5c0-1.1.54-2.17 2.27-2.17h1.75V4.9s-1.59-.27-3.11-.27c-3.17 0-5.24 1.92-5.24 5.4v3.05h-3.53v4.02h3.53v9.72a14 14 0 004.33 0V17.1z" fill="#fff"/>
+    </symbol>
+
+    <symbol id="ic-youtube" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="9" fill="#FF0033"/>
+      <path d="M13.2 11.2l8.2 4.8-8.2 4.8z" fill="#fff"/>
+    </symbol>
+
+    <symbol id="ic-linkedin" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="9" fill="#0A66C2"/>
+      <circle cx="10.4" cy="10.2" r="2.1" fill="#fff"/>
+      <rect x="8.6" y="13.6" width="3.6" height="10.2" rx="0.6" fill="#fff"/>
+      <path d="M15 13.6h3.45v1.42a3.9 3.9 0 013.3-1.62c2.62 0 4.05 1.66 4.05 4.68v5.74h-3.6v-5.1c0-1.4-.53-2.2-1.72-2.2-1.13 0-1.88.76-1.88 2.2v5.1H15z" fill="#fff"/>
+    </symbol>
+
+    <symbol id="ic-tiktok" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="9" fill="#010101"/>
+      <path d="M20.1 6.4c.72 3.05 2.68 4.9 5.6 5.25v3.72c-1.98.12-3.85-.5-5.6-1.66v7.4c0 4.3-3.35 7.6-7.4 7.6a7.35 7.35 0 01-3.6-.93l1.9-2.9c.52.24 1.1.36 1.7.36 2.2 0 4-1.8 4-4.13V6.4z" fill="#25F4EE" transform="translate(-1.4 .9)"/>
+      <path d="M20.1 6.4c.72 3.05 2.68 4.9 5.6 5.25v3.72c-1.98.12-3.85-.5-5.6-1.66v7.4c0 4.3-3.35 7.6-7.4 7.6a7.35 7.35 0 01-3.6-.93l1.9-2.9c.52.24 1.1.36 1.7.36 2.2 0 4-1.8 4-4.13V6.4z" fill="#FE2C55" transform="translate(1.1 -.5)"/>
+      <path d="M20.1 6.4c.72 3.05 2.68 4.9 5.6 5.25v3.72c-1.98.12-3.85-.5-5.6-1.66v7.4c0 4.3-3.35 7.6-7.4 7.6-4.06 0-7.4-3.3-7.4-7.6 0-4.3 3.34-7.6 7.4-7.6.36 0 .72.03 1.07.08v3.86a3.9 3.9 0 00-1.07-.15c-2.2 0-4 1.8-4 4.13 0 2.32 1.8 4.13 4 4.13 2.2 0 4-1.8 4-4.13V6.4z" fill="#fff"/>
+    </symbol>
+
+    <symbol id="ic-landing" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="9" fill="url(#g-rappn)"/>
+      <rect x="7" y="8" width="18" height="15" rx="2.6" fill="none" stroke="#fff" stroke-width="1.9"/>
+      <path d="M7 12.6h18" stroke="#fff" stroke-width="1.9"/>
+      <circle cx="10.2" cy="10.4" r=".95" fill="#fff"/>
+      <path d="M12.4 18.4h7.2M12.4 21h4.4" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="9" width="12" height="12" rx="2.4"/>
+      <path d="M5 15V5a2 2 0 012-2h10"/>
+    </symbol>
+    <symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 12.5l5.2 5.2L20 7"/>
+    </symbol>
+    <symbol id="ic-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3.6L1.8 20.4h20.4z"/><path d="M12 9.6v4.6"/><circle cx="12" cy="17.4" r=".1"/>
+    </symbol>
+    <symbol id="ic-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 5l7 7-7 7"/>
+    </symbol>
+    <symbol id="ic-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.5 12a8.5 8.5 0 11-2.6-6.1"/><path d="M20.7 4.2v5h-5"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="rb">
+  <div class="rb-wrap">
+
+    <header class="masthead">
+      <div>
+        <div class="brandbar"></div>
+        <h1>Referral board</h1>
+        <p class="sub">
+          Every Rappn download link, by channel and language. One row per link,
+          bar length is unique clicks, the bright part is Switzerland.
+        </p>
+      </div>
+      <div class="sourcechip" id="sourceChip" data-mode="snapshot">
+        <span class="dot"></span><span id="sourceText">…</span>
+      </div>
+    </header>
+
+    <section class="tiles" id="tiles" aria-label="Totals"></section>
+
+    <div id="alarms"></div>
+
+    <div class="controls">
+      <div class="segmented" role="group" aria-label="View">
+        <button type="button" data-view="board" aria-pressed="true">By channel</button>
+        <button type="button" data-view="ranked" aria-pressed="false">Ranked</button>
+      </div>
+      <div class="segmented" role="group" aria-label="Measure">
+        <button type="button" data-metric="total" aria-pressed="true">All clicks</button>
+        <button type="button" data-metric="swiss" aria-pressed="false">Swiss only</button>
+      </div>
+      <span class="spacer"></span>
+      <a class="ghostbtn" id="manageLink" href="./manage.html" hidden>Add or edit codes</a>
+      <button type="button" class="ghostbtn" id="reloadBtn" hidden>
+        <svg><use href="#ic-refresh"/></svg>Reload
+      </button>
+    </div>
+
+    <section id="boardView" class="board" aria-label="Channels"></section>
+
+    <section id="rankedView" class="card" hidden aria-label="All links ranked">
+      <header>
+        <h2>All links, best first</h2>
+        <span class="hint" id="rankedHint"></span>
       </header>
+      <div class="ranked" id="rankedList" style="padding: 6px 15px 12px;"></div>
+    </section>
 
-      <section class="card settings">
-        <h2>Connessione API</h2>
-        <div class="row">
-          <label>
-            Backend URL
-            <input id="apiBase" placeholder="http://localhost:8000" />
-          </label>
-          <label>
-            Admin Token (opzionale)
-            <input id="adminToken" type="password" placeholder="x-admin-token" />
-          </label>
+    <section class="card" aria-label="Link detail">
+      <header>
+        <h2>Every link</h2>
+        <span class="hint">One click counted per IP per link, so these are unique visitors, not visits.</span>
+      </header>
+      <div class="dgrid">
+        <div class="dhead" role="row">
+          <button type="button" data-sort="who">Channel</button>
+          <button type="button" data-sort="code">Link</button>
+          <button type="button" data-sort="total" class="r" data-active="true">Clicks</button>
+          <button type="button" data-sort="swiss" class="r">Swiss</button>
+          <button type="button" data-sort="share" class="r">CH&nbsp;share</button>
+          <span></span>
         </div>
-      </section>
+        <div id="detailRows"></div>
+      </div>
+    </section>
 
-      <section class="stats-grid">
-        <article class="card stat">
-          <h3>Ambassador</h3>
-          <p id="totalAmbassadors">0</p>
-        </article>
-        <article class="card stat">
-          <h3>Click Totali</h3>
-          <p id="totalClicks">0</p>
-        </article>
-        <article class="card stat">
-          <h3>Click Svizzeri</h3>
-          <p id="swissClicks">0</p>
-        </article>
-        <article class="card stat">
-          <h3>% Svizzera</h3>
-          <p id="swissRatio">0%</p>
-        </article>
-      </section>
-
-      <section class="card">
-        <h2>Nuovo ambassador</h2>
-        <form id="createForm" class="row">
-          <input id="newCode" placeholder="referral_code" required />
-          <input id="newName" placeholder="Nome (opzionale)" />
-          <input id="newPassword" type="password" placeholder="Password accesso (min 8)" />
-          <input id="newPayout" type="number" min="0" step="0.01" placeholder="CHF per click CH (es. 0.50)" />
-          <button type="submit">Crea referral</button>
-        </form>
-      </section>
-
-      <section class="card">
-        <div class="table-header">
-          <h2>Referral attivi</h2>
-          <span id="statusText" class="status"></span>
+    <details class="connect" id="connectBox">
+      <summary><svg class="chev"><use href="#ic-chev"/></svg>Show live numbers</summary>
+      <div class="inner">
+        <p id="connectLede"></p>
+        <p>
+          Paste the response of <code>GET /api/ambassadors</code> below and this board redraws on
+          your real numbers. Nothing is sent anywhere, it is parsed in your browser.
+        </p>
+<pre>curl -H "x-admin-token: YOUR_ADMIN_TOKEN" \
+     https://YOUR-BACKEND.up.railway.app/api/ambassadors</pre>
+        <textarea id="pasteBox" spellcheck="false"
+          placeholder='[{"referral_code":"i-de","name":"IG Page DE","total_clicks":0,"swiss_clicks":0,"payout_per_swiss_click":0}, …]'></textarea>
+        <div class="controls">
+          <button type="button" class="primarybtn" id="parseBtn">Redraw with this data</button>
+          <button type="button" class="ghostbtn" id="resetBtn">Back to the snapshot</button>
+          <span class="parse-msg" id="parseMsg"></span>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Code</th>
-                <th>Nome</th>
-                <th>Click</th>
-                <th>CH</th>
-                <th>CHF/click CH</th>
-                <th>Link</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="ambassadorsTable"></tbody>
-          </table>
-        </div>
-      </section>
-    </main>
+      </div>
+    </details>
 
-    <script src="./app.js"></script>
-  </body>
+    <p class="colophon" id="colophon"></p>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ───────── the tracked set ─────────
+     13 social codes from the founder's referral export + the landing-page code,
+     which is live in the rappn.ch header on /de and /en.                        */
+  const PLATFORMS = {
+    instagram: { name: "Instagram",     icon: "ic-instagram", note: "Caption links are not tappable on Instagram, so the bio link and Story stickers carry the code." },
+    facebook:  { name: "Facebook Page", icon: "ic-facebook",  note: "" },
+    youtube:   { name: "YouTube",       icon: "ic-youtube",   note: "" },
+    linkedin:  { name: "LinkedIn",      icon: "ic-linkedin",  note: "The link belongs in the first comment, never the post body." },
+    tiktok:    { name: "TikTok",        icon: "ic-tiktok",    note: "No codes created yet, so nothing can be counted here." },
+    landing:   { name: "Landing page",  icon: "ic-landing",   note: "" }
+  };
+  const ORDER = ["instagram", "facebook", "youtube", "linkedin", "tiktok", "landing"];
+  const LANG_NAME = { de: "German", fr: "French", it: "Italian", en: "English", all: "All languages" };
+
+  const TRACKED = [
+    { code: "i-de", platform: "instagram", lang: "de" },
+    { code: "i-fr", platform: "instagram", lang: "fr" },
+    { code: "i-it", platform: "instagram", lang: "it" },
+    { code: "i-en", platform: "instagram", lang: "en" },
+    { code: "f-de", platform: "facebook",  lang: "de" },
+    { code: "f-fr", platform: "facebook",  lang: "fr" },
+    { code: "f-it", platform: "facebook",  lang: "it" },
+    { code: "f-en", platform: "facebook",  lang: "en" },
+    { code: "y-de", platform: "youtube",   lang: "de" },
+    { code: "y-fr", platform: "youtube",   lang: "fr" },
+    { code: "y-it", platform: "youtube",   lang: "it" },
+    { code: "y-en", platform: "youtube",   lang: "en" },
+    { code: "l-en", platform: "linkedin",  lang: "en" },
+    { code: "landing", platform: "landing", lang: "all" }
+  ];
+  /* Reserved: named so the board can show the channel, but no code exists to count. */
+  const RESERVED = [
+    { code: "t-de", platform: "tiktok", lang: "de" },
+    { code: "t-fr", platform: "tiktok", lang: "fr" },
+    { code: "t-it", platform: "tiktok", lang: "it" },
+    { code: "t-en", platform: "tiktok", lang: "en" }
+  ];
+
+  const REF_BASE = "https://rappn.ch/ref/";
+
+  /* The founder's own referral export, 10 August 2026. Real figures, not a mock-up.
+     `landing` is absent from it, which is itself the finding.                      */
+  const SNAPSHOT = {
+    label: "Referral export, 10 Aug 2026",
+    rows: [
+      { referral_code: "f-en", name: "FB Page EN", total_clicks: 8, swiss_clicks: 0, payout_per_swiss_click: 0 },
+      { referral_code: "f-fr", name: "FB Page FR", total_clicks: 8, swiss_clicks: 0, payout_per_swiss_click: 0 },
+      { referral_code: "f-it", name: "FB Page IT", total_clicks: 7, swiss_clicks: 0, payout_per_swiss_click: 0 },
+      { referral_code: "y-it", name: "YT Page IT", total_clicks: 4, swiss_clicks: 2, payout_per_swiss_click: 0 },
+      { referral_code: "y-en", name: "YT Page EN", total_clicks: 3, swiss_clicks: 1, payout_per_swiss_click: 0 },
+      { referral_code: "f-de", name: "FB Page DE", total_clicks: 1, swiss_clicks: 0, payout_per_swiss_click: 0 },
+      { referral_code: "i-de", name: "IG Page DE", total_clicks: 0, swiss_clicks: 0, payout_per_swiss_click: 0 },
+      { referral_code: "i-fr", name: "IG Page FR", total_clicks: 0, swiss_clicks: 0, payout_per_swiss_click: 0 },
+      { referral_code: "i-it", name: "IG Page IT", total_clicks: 0, swiss_clicks: 0, payout_per_swiss_click: 0 },
+      { referral_code: "i-en", name: "IG Page EN", total_clicks: 0, swiss_clicks: 0, payout_per_swiss_click: 0 },
+      { referral_code: "y-de", name: "YT Page DE", total_clicks: 0, swiss_clicks: 0, payout_per_swiss_click: 0 },
+      { referral_code: "y-fr", name: "YT Page FR", total_clicks: 0, swiss_clicks: 0, payout_per_swiss_click: 0 },
+      { referral_code: "l-en", name: "LI Page EN", total_clicks: 0, swiss_clicks: 0, payout_per_swiss_click: 0 }
+    ]
+  };
+
+  /* ───────── state ───────── */
+  const state = { view: "board", metric: "total", mode: "snapshot", label: SNAPSHOT.label,
+                  rows: SNAPSHOT.rows, sort: "total", dir: -1, extras: [] };
+
+  const $  = (s) => document.querySelector(s);
+  const el = (tag, cls, txt) => { const n = document.createElement(tag);
+    if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
+  const svg = (id, cls) => {
+    const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    if (cls) s.setAttribute("class", cls);
+    const u = document.createElementNS("http://www.w3.org/2000/svg", "use");
+    u.setAttribute("href", "#" + id); s.appendChild(u); return s;
+  };
+  const nf = new Intl.NumberFormat("de-CH");
+  const pct = (n, d) => d > 0 ? Math.round((n / d) * 100) : 0;
+
+  /* ───────── shape the data ───────── */
+  function build() {
+    const byCode = new Map();
+    for (const r of state.rows) {
+      const c = String(r.referral_code || "").trim().toLowerCase();
+      if (c) byCode.set(c, r);
+    }
+
+    const links = TRACKED.map((t) => {
+      const r = byCode.get(t.code);
+      const total = r ? Number(r.total_clicks) || 0 : 0;
+      const swiss = r ? Number(r.swiss_clicks) || 0 : 0;
+      const payout = r ? Number(r.payout_per_swiss_click) || 0 : 0;
+      return {
+        ...t, present: !!r, total, swiss, other: Math.max(0, total - swiss),
+        payout, cost: +(swiss * payout).toFixed(2),
+        share: pct(swiss, total),
+        status: !r ? "missing" : total > 0 ? "live" : "quiet",
+        url: REF_BASE + t.code
+      };
+    });
+    const reserved = RESERVED.map((t) => ({
+      ...t, present: false, total: 0, swiss: 0, other: 0, payout: 0, cost: 0,
+      share: 0, status: "soon", url: null
+    }));
+
+    const trackedCodes = new Set(TRACKED.map((t) => t.code));
+    state.extras = state.rows
+      .filter((r) => !trackedCodes.has(String(r.referral_code || "").trim().toLowerCase()))
+      .map((r) => ({ code: r.referral_code, name: r.name,
+                     total: Number(r.total_clicks) || 0, swiss: Number(r.swiss_clicks) || 0 }));
+
+    const groups = ORDER.map((key) => {
+      const items = key === "tiktok" ? reserved : links.filter((l) => l.platform === key);
+      const total = items.reduce((a, b) => a + b.total, 0);
+      const swiss = items.reduce((a, b) => a + b.swiss, 0);
+      return { key, ...PLATFORMS[key], items, total, swiss,
+               missing: items.filter((i) => i.status === "missing").length,
+               idle: key === "tiktok" || total === 0 };
+    }).sort((a, b) =>
+      /* best first, but a channel that does not exist yet always sits at the end */
+      (a.key === "tiktok") - (b.key === "tiktok") ||
+      (b.total - a.total) ||
+      ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
+
+    const totals = {
+      total: links.reduce((a, b) => a + b.total, 0),
+      swiss: links.reduce((a, b) => a + b.swiss, 0),
+      cost:  links.reduce((a, b) => a + b.cost, 0),
+      counting: links.filter((l) => l.present).length,
+      expected: links.length,
+      missing: links.filter((l) => l.status === "missing")
+    };
+    totals.share = pct(totals.swiss, totals.total);
+    return { links, reserved, groups, totals };
+  }
+
+  const measure = (l) => state.metric === "swiss" ? l.swiss : l.total;
+
+  /* ───────── pieces ───────── */
+  function bar(link, max) {
+    const wrap = el("div", "track");
+    const value = measure(link);
+    if (value <= 0) { wrap.classList.add("is-empty"); return wrap; }
+    const fill = el("div", "fill");
+    fill.style.width = Math.max(2.5, (value / (max || 1)) * 100) + "%";
+    if (state.metric === "swiss") {
+      const only = el("i", "ch"); only.style.flex = "1"; fill.appendChild(only);
+    } else {
+      if (link.swiss > 0) {
+        const ch = el("i", "ch"); ch.style.flex = String(link.swiss); fill.appendChild(ch);
+      }
+      if (link.other > 0) {
+        const ot = el("i", "oth"); ot.style.flex = String(link.other); fill.appendChild(ot);
+      }
+    }
+    wrap.appendChild(fill);
+    return wrap;
+  }
+
+  function valueCell(link) {
+    const v = el("div", "val");
+    const value = measure(link);
+    if (value === 0) {
+      v.appendChild(el("span", "zero", link.status === "missing" ? "—" : "0"));
+      return v;
+    }
+    v.appendChild(document.createTextNode(nf.format(value)));
+    if (state.metric === "total" && link.swiss > 0) {
+      const s = el("span", "ch", link.swiss + " CH");
+      s.style.fontSize = "11px"; s.style.marginLeft = "6px";
+      v.appendChild(s);
+    }
+    return v;
+  }
+
+  function renderTiles(t) {
+    const host = $("#tiles"); host.textContent = "";
+    const tiles = [
+      { k: "Unique clicks", v: nf.format(t.total), f: "across " + t.expected + " tracked links" },
+      { k: "From Switzerland", v: nf.format(t.swiss), f: t.total ? t.share + "% of all clicks" : "no clicks yet", accent: true },
+      { k: "Links counting", v: t.counting + "/" + t.expected, f: t.missing.length ? t.missing.length + " not on the tracker" : "all registered" },
+      { k: "Payout owed", v: "CHF " + t.cost.toFixed(2), f: "Swiss clicks × rate per link" }
+    ];
+    for (const d of tiles) {
+      const c = el("article", "tile" + (d.accent ? " is-accent" : ""));
+      c.appendChild(el("div", "eyebrow", d.k));
+      c.appendChild(el("div", "v", d.v));
+      c.appendChild(el("div", "foot", d.f));
+      host.appendChild(c);
+    }
+  }
+
+  function renderAlarms(t) {
+    const host = $("#alarms"); host.textContent = "";
+
+    if (t.missing.length) {
+      const a = el("div", "alarm");
+      a.appendChild(svg("ic-alert", "mark"));
+      const body = el("div");
+      body.appendChild(el("h3", null,
+        t.missing.length + (t.missing.length === 1 ? " link is" : " links are") + " live but not counting"));
+      body.appendChild(el("p", null,
+        "The tracker drops a click when the code has no row in the ambassador table, and the visitor is still " +
+        "forwarded to the store, so nothing looks broken. Every click on these has been lost."));
+      const codes = el("div", "codes");
+      for (const m of t.missing) codes.appendChild(el("span", null, m.code));
+      body.appendChild(codes);
+      a.appendChild(body); host.appendChild(a);
+    }
+
+    const zero = state.rows.length ? TRACKED.filter((x) => {
+      const r = state.rows.find((y) => String(y.referral_code).toLowerCase() === x.code);
+      return r && (Number(r.total_clicks) || 0) === 0;
+    }) : [];
+    if (zero.length >= 4) {
+      const a = el("div", "alarm is-warn");
+      a.appendChild(svg("ic-alert", "mark"));
+      const body = el("div");
+      body.appendChild(el("h3", null, zero.length + " registered links have never been clicked"));
+      body.appendChild(el("p", null,
+        "These are wired up correctly and counting, they have simply never been posted with, or never been " +
+        "tapped. Worth checking the posts that should carry them."));
+      const codes = el("div", "codes");
+      for (const z of zero) codes.appendChild(el("span", null, z.code));
+      body.appendChild(codes);
+      a.appendChild(body); host.appendChild(a);
+    }
+  }
+
+  function renderBoard(d) {
+    const host = $("#boardView"); host.textContent = "";
+    const max = Math.max(1, ...d.links.map(measure));
+
+    for (const g of d.groups) {
+      const p = el("section", "panel" + (g.idle ? " is-idle" : "") +
+                                        (g.key === "tiktok" ? " is-reserved" : ""));
+
+      const head = el("div", "phead");
+      head.appendChild(svg(g.icon, "glyph"));
+      const who = el("div");
+      who.appendChild(el("div", "name", g.name));
+      const langs = g.items.length;
+      who.appendChild(el("div", "meta",
+        g.key === "tiktok" ? "not created yet"
+        : g.missing ? g.missing + " of " + langs + " not counting"
+        : langs + (langs === 1 ? " link" : " links")));
+      head.appendChild(who);
+
+      const tot = el("div", "total");
+      tot.appendChild(el("div", "n", g.idle && g.key === "tiktok" ? "—" : nf.format(state.metric === "swiss" ? g.swiss : g.total)));
+      tot.appendChild(el("div", "l", state.metric === "swiss" ? "Swiss" : "clicks"));
+      head.appendChild(tot);
+      p.appendChild(head);
+
+      const rows = el("div", "rows");
+      for (const item of g.items) {
+        const r = el("div", "row" + (item.status === "missing" ? " is-missing" : ""));
+        const lang = el("div", "lang");
+        lang.appendChild(document.createTextNode(item.lang === "all" ? "ALL" : item.lang.toUpperCase()));
+        r.appendChild(lang);
+        r.appendChild(bar(item, max));
+        r.appendChild(valueCell(item));
+        r.title = item.url ? item.url : "no code exists yet";
+        rows.appendChild(r);
+      }
+      p.appendChild(rows);
+
+      let note = g.note;
+      if (g.missing) {
+        note = "<b>" + g.missing + " code" + (g.missing > 1 ? "s are" : " is") + " missing from the tracker.</b> " + note;
+      }
+      if (note) {
+        const n = el("div", "note"); n.innerHTML = note; p.appendChild(n);
+      }
+      host.appendChild(p);
+    }
+  }
+
+  function renderRanked(d) {
+    const list = $("#rankedList"); list.textContent = "";
+    const items = d.links.slice().sort((a, b) => measure(b) - measure(a) || a.code.localeCompare(b.code));
+    const max = Math.max(1, ...items.map(measure));
+    $("#rankedHint").textContent = state.metric === "swiss"
+      ? "Ordered by Swiss clicks" : "Ordered by unique clicks, bright segment is Switzerland";
+
+    items.forEach((item, i) => {
+      const row = el("div", "rank-row");
+      row.appendChild(el("div", "pos", String(i + 1)));
+      row.appendChild(svg(PLATFORMS[item.platform].icon, "glyph"));
+
+      const body = el("div", "body");
+      const label = el("div", "label");
+      label.appendChild(el("span", "who", PLATFORMS[item.platform].name + " · " + LANG_NAME[item.lang]));
+      label.appendChild(el("span", "code", item.code));
+      if (item.status === "missing") label.appendChild(el("span", "statuspill missing", "not counting"));
+      body.appendChild(label);
+      body.appendChild(bar(item, max));
+      row.appendChild(body);
+      row.appendChild(valueCell(item));
+      list.appendChild(row);
+    });
+  }
+
+  function renderDetail(d) {
+    const host = $("#detailRows"); host.textContent = "";
+    const all = d.links.concat(d.reserved);
+    const key = state.sort, dir = state.dir;
+    const val = (x) => key === "who"  ? PLATFORMS[x.platform].name + x.lang
+                     : key === "code" ? x.code
+                     : key === "swiss" ? x.swiss
+                     : key === "share" ? x.share : x.total;
+    all.sort((a, b) => {
+      const va = val(a), vb = val(b);
+      if (typeof va === "string") return dir * va.localeCompare(vb);
+      return dir * (va - vb) || a.code.localeCompare(b.code);
+    });
+
+    for (const item of all) {
+      const row = el("div", "drow" + (item.status === "missing" ? " is-missing" : ""));
+
+      const who = el("div", "c-who");
+      who.appendChild(svg(PLATFORMS[item.platform].icon, "glyph"));
+      const stack = el("div", "stack");
+      stack.appendChild(el("div", "n", PLATFORMS[item.platform].name));
+      stack.appendChild(el("div", "eyebrow", LANG_NAME[item.lang]));
+      who.appendChild(stack);
+      row.appendChild(who);
+
+      const linkCell = el("div", "c-link");
+      if (item.url) {
+        const a = el("a", null, "rappn.ch/ref/" + item.code);
+        a.href = item.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+        linkCell.appendChild(a);
+      } else {
+        linkCell.appendChild(el("span", "code", item.code));
+      }
+      const pill = el("span", "statuspill " + item.status,
+        item.status === "live" ? "counting" : item.status === "quiet" ? "no clicks"
+        : item.status === "missing" ? "not counting" : "to create");
+      linkCell.appendChild(pill);
+      row.appendChild(linkCell);
+
+      const nums = el("div", "nums");
+      const cell = (k, v, cls) => {
+        const c = el("div");
+        c.appendChild(el("div", "k", k));
+        c.appendChild(el("div", "v " + (cls || ""), v));
+        return c;
+      };
+      nums.appendChild(cell("Clicks", item.status === "missing" || item.status === "soon" ? "—" : nf.format(item.total)));
+      nums.appendChild(cell("Swiss",  item.status === "missing" || item.status === "soon" ? "—" : nf.format(item.swiss)));
+      nums.appendChild(cell("CH share", item.total ? item.share + "%" : "—"));
+      row.appendChild(nums);
+
+      const copy = el("button", "copybtn");
+      copy.type = "button";
+      copy.setAttribute("aria-label", "Copy " + item.code + " link");
+      copy.appendChild(svg("ic-copy"));
+      if (!item.url) { copy.disabled = true; copy.style.opacity = ".35"; }
+      copy.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText(item.url); } catch (e) { /* clipboard refused */ }
+        copy.textContent = ""; copy.appendChild(svg("ic-check")); copy.classList.add("done");
+        setTimeout(() => { copy.textContent = ""; copy.appendChild(svg("ic-copy")); copy.classList.remove("done"); }, 1400);
+      });
+      row.appendChild(copy);
+      host.appendChild(row);
+    }
+
+    document.querySelectorAll(".dhead button").forEach((b) => {
+      b.dataset.active = String(b.dataset.sort === state.sort);
+    });
+  }
+
+  function renderChrome(d) {
+    const chip = $("#sourceChip");
+    chip.dataset.mode = state.mode;
+    $("#sourceText").innerHTML =
+      state.mode === "live"   ? "<b>Live</b> · " + state.label
+    : state.mode === "pasted" ? "<b>Your data</b> · " + state.label
+    :                           "<b>Snapshot</b> · " + state.label;
+
+    $("#connectLede").textContent = state.mode === "live"
+      ? "This board is reading your tracker directly."
+      : "This page cannot reach your tracker from here, so it is showing the last export you sent.";
+
+    const extra = state.extras.length
+      ? " Your tracker also holds " + state.extras.length + " other referral code" +
+        (state.extras.length === 1 ? "" : "s") + " (ambassadors), not shown on this board."
+      : "";
+    $("#colophon").innerHTML =
+      "A click is counted once per IP per link, for ever, so these are unique visitors rather than visits. " +
+      "Swiss is decided by IP at click time. Every link resolves through <b>rappn.ch/ref/&lt;code&gt;</b> to the " +
+      "App Store on iPhone, Google Play on Android, and the QR page on desktop." + extra;
+  }
+
+  function render() {
+    const d = build();
+    renderTiles(d.totals);
+    renderAlarms(d.totals);
+    renderChrome(d);
+    if (state.view === "board") {
+      $("#boardView").hidden = false; $("#rankedView").hidden = true; renderBoard(d);
+    } else {
+      $("#boardView").hidden = true; $("#rankedView").hidden = false; renderRanked(d);
+    }
+    renderDetail(d);
+  }
+
+  /* ───────── controls ───────── */
+  document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
+    state.view = b.dataset.view;
+    document.querySelectorAll("[data-view]").forEach((x) =>
+      x.setAttribute("aria-pressed", String(x === b)));
+    render();
+  }));
+  document.querySelectorAll("[data-metric]").forEach((b) => b.addEventListener("click", () => {
+    state.metric = b.dataset.metric;
+    document.querySelectorAll("[data-metric]").forEach((x) =>
+      x.setAttribute("aria-pressed", String(x === b)));
+    render();
+  }));
+  document.querySelectorAll(".dhead button").forEach((b) => b.addEventListener("click", () => {
+    const k = b.dataset.sort;
+    if (state.sort === k) state.dir = -state.dir;
+    else { state.sort = k; state.dir = (k === "who" || k === "code") ? 1 : -1; }
+    render();
+  }));
+
+  $("#parseBtn").addEventListener("click", () => {
+    const msg = $("#parseMsg"); msg.className = "parse-msg";
+    const raw = $("#pasteBox").value.trim();
+    if (!raw) { msg.classList.add("bad"); msg.textContent = "Paste the JSON first."; return; }
+    let data;
+    try { data = JSON.parse(raw); }
+    catch (e) { msg.classList.add("bad"); msg.textContent = "That is not valid JSON."; return; }
+    if (!Array.isArray(data)) data = data.ambassadors || data.rows || data.data;
+    if (!Array.isArray(data) || !data.length) {
+      msg.classList.add("bad"); msg.textContent = "Expected the array that /api/ambassadors returns."; return;
+    }
+    if (!("referral_code" in data[0])) {
+      msg.classList.add("bad"); msg.textContent = "No referral_code field found in the first row."; return;
+    }
+    state.rows = data; state.mode = "pasted";
+    state.label = data.length + " codes, pasted just now";
+    msg.classList.add("ok"); msg.textContent = "Redrawn on " + data.length + " codes.";
+    render();
+  });
+
+  $("#resetBtn").addEventListener("click", () => {
+    state.rows = SNAPSHOT.rows; state.mode = "snapshot"; state.label = SNAPSHOT.label;
+    $("#parseMsg").textContent = ""; $("#pasteBox").value = "";
+    render();
+  });
+
+  /* ───────── live mode ─────────
+     Only reachable when this file is served from the dashboard container, where the
+     backend URL and admin token come from the service's own .env. Published as an
+     artifact the fetch is blocked, and we fall back to the snapshot.               */
+  async function readEnv() {
+    try {
+      const res = await fetch("./.env", { cache: "no-store" });
+      if (!res.ok) return {};
+      const out = {};
+      for (const line of (await res.text()).split("\n")) {
+        const s = line.trim();
+        if (!s || s.startsWith("#")) continue;
+        const i = s.indexOf("=");
+        if (i > 0) out[s.slice(0, i).trim()] = s.slice(i + 1).trim().replace(/^['"]|['"]$/g, "");
+      }
+      return out;
+    } catch (e) { return {}; }
+  }
+
+  async function goLive() {
+    const env = await readEnv();
+    const base = (env.DASHBOARD_API_BASE || "").replace(/\/$/, "");
+    const token = env.DASHBOARD_ADMIN_TOKEN || "";
+    if (!base) return false;
+    try {
+      const res = await fetch(base + "/api/ambassadors", {
+        headers: token ? { "x-admin-token": token } : {}, cache: "no-store"
+      });
+      if (!res.ok) return false;
+      const rows = await res.json();
+      if (!Array.isArray(rows)) return false;
+      state.rows = rows; state.mode = "live";
+      state.label = "read " + new Date().toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
+      $("#reloadBtn").hidden = false;
+      $("#manageLink").hidden = false;   /* the CRUD screen only exists in the deployed build */
+      render();
+      return true;
+    } catch (e) { return false; }
+  }
+
+  $("#reloadBtn").addEventListener("click", goLive);
+
+  render();
+  goLive();
+})();
+</script>
+
+</body>
 </html>
