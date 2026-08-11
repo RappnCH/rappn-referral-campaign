@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Referral codes — manage</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="header">
+        <div>
+          <h1>Referral codes</h1>
+          <p>
+            Crea, modifica ed elimina i codici referral.
+            Per le performance vai alla <a href="./index.html">board</a>.
+          </p>
+        </div>
+        <button id="refreshBtn" class="secondary">Aggiorna</button>
+      </header>
+
+      <section class="card settings">
+        <h2>Connessione API</h2>
+        <div class="row">
+          <label>
+            Backend URL
+            <input id="apiBase" placeholder="http://localhost:8000" />
+          </label>
+          <label>
+            Admin Token (opzionale)
+            <input id="adminToken" type="password" placeholder="x-admin-token" />
+          </label>
+        </div>
+      </section>
+
+      <section class="stats-grid">
+        <article class="card stat">
+          <h3>Ambassador</h3>
+          <p id="totalAmbassadors">0</p>
+        </article>
+        <article class="card stat">
+          <h3>Click Totali</h3>
+          <p id="totalClicks">0</p>
+        </article>
+        <article class="card stat">
+          <h3>Click Svizzeri</h3>
+          <p id="swissClicks">0</p>
+        </article>
+        <article class="card stat">
+          <h3>% Svizzera</h3>
+          <p id="swissRatio">0%</p>
+        </article>
+      </section>
+
+      <section class="card">
+        <h2>Nuovo ambassador</h2>
+        <form id="createForm" class="row">
+          <input id="newCode" placeholder="referral_code" required />
+          <input id="newName" placeholder="Nome (opzionale)" />
+          <input id="newPassword" type="password" placeholder="Password accesso (min 8)" />
+          <input id="newPayout" type="number" min="0" step="0.01" placeholder="CHF per click CH (es. 0.50)" />
+          <button type="submit">Crea referral</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="table-header">
+          <h2>Referral attivi</h2>
+          <span id="statusText" class="status"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Nome</th>
+                <th>Click</th>
+                <th>CH</th>
+                <th>CHF/click CH</th>
+                <th>Link</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="ambassadorsTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
