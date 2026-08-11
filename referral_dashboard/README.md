@@ -7,6 +7,22 @@ Due pagine, servite dallo stesso container:
 | `index.html` | **La board.** Performance di ogni link di download, per canale e per lingua: totali, quota svizzera, classifica, e l'allarme sui codici che non stanno contando. Nessuna dipendenza esterna, un file solo. |
 | `manage.html` | La gestione: crea, modifica ed elimina i codici referral (la vecchia dashboard). |
 
+## Accesso
+
+La board si apre su una schermata di login. **Non c'e' un confronto fra password**: i
+numeri dello snapshot sono cifrati con AES-GCM e la chiave viene derivata con PBKDF2-SHA256
+(250'000 iterazioni) da *account + password* insieme. Credenziali sbagliate significano
+chiave sbagliata, e il tag di autenticazione GCM fallisce: non c'e' niente da leggere e
+niente da aggirare cancellando un `if` in devtools. Nel file non e' salvato ne' l'account
+ne' la password, solo salt, IV e ciphertext.
+
+La sessione resta aperta nella scheda (`sessionStorage`), "Sign out" la chiude. Non esiste
+recupero password: si rigenera il vault con `seal.mjs` e si ricostruisce la pagina.
+
+**Attenzione al perimetro**: questo protegge le *cifre incorporate nella pagina*. Quando la
+board gira in modalita' live contro il backend, cio' che protegge l'API resta l'`ADMIN_TOKEN`
+(vedi la nota di sicurezza qui sotto), non questo login.
+
 ## La board
 
 Legge `GET /api/ambassadors` e incrocia il risultato con l'elenco dei link che

@@ -418,6 +418,44 @@
 
 .colophon { font-size: 11.5px; color: var(--ink-3); line-height: 1.7; max-width: 80ch; }
 .colophon b { color: var(--ink-2); font-weight: 600; }
+
+/* ─────────────────────────────  the gate  ───────────────────────────── */
+.gate {
+  background: var(--ground); min-height: 100svh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px 18px; font-family: var(--grotesque); color: var(--ink);
+}
+.gate-card {
+  width: 100%; max-width: 372px; background: var(--surface);
+  border: 1px solid var(--hairline); border-radius: var(--r-l);
+  box-shadow: var(--shadow); padding: 26px 24px 24px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.gate-card .brandbar { margin-bottom: 0; }
+.gate-card h2 { font-size: 19px; font-weight: 660; letter-spacing: -.02em; margin: 0; }
+.gate-card .lede { font-size: 13px; color: var(--ink-2); margin: 5px 0 0; line-height: 1.5; }
+.gate form { display: flex; flex-direction: column; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3); font-weight: 620;
+}
+.field input {
+  border: 1px solid var(--hairline); border-radius: 9px; padding: 10px 12px;
+  background: var(--surface-sunk); color: var(--ink); font-size: 15px;
+  font-family: var(--mono); width: 100%;
+}
+.field input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+.gate .primarybtn { width: 100%; padding: 11px 16px; font-size: 14px; }
+.gate .primarybtn[disabled] { opacity: .6; cursor: progress; }
+.gate-msg { font-size: 12.5px; font-weight: 560; min-height: 17px; color: var(--critical); }
+.gate-foot { font-size: 11px; color: var(--ink-3); line-height: 1.6; border-top: 1px solid var(--hairline-soft); padding-top: 13px; }
+
+.signout {
+  border: 1px solid var(--hairline); background: var(--surface); cursor: pointer;
+  border-radius: 8px; padding: 7px 13px; font-size: 12.5px; font-weight: 560; color: var(--ink-3);
+}
+.signout:hover { border-color: var(--critical); color: var(--critical); }
 </style>
 
 <!-- platform marks, drawn inline (no remote assets can load here) -->
@@ -496,7 +534,36 @@
   </defs>
 </svg>
 
-<div class="rb">
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="brandbar"></div>
+    <div>
+      <h2>Referral board</h2>
+      <p class="lede">
+        The figures on this page are encrypted. Your sign-in derives the key that reads them.
+      </p>
+    </div>
+    <form id="gateForm" autocomplete="on">
+      <div class="field">
+        <label for="gateUser">Account</label>
+        <input id="gateUser" name="username" type="text" autocomplete="username"
+               autocapitalize="none" autocorrect="off" spellcheck="false" required />
+      </div>
+      <div class="field">
+        <label for="gatePass">Password</label>
+        <input id="gatePass" name="password" type="password" autocomplete="current-password" required />
+      </div>
+      <button type="submit" class="primarybtn" id="gateBtn">Open the board</button>
+      <p class="gate-msg" id="gateMsg" role="status" aria-live="polite"></p>
+    </form>
+    <p class="gate-foot">
+      There is no "forgot password": the key exists only in what you type. Lose it and this
+      page's figures stay sealed, though nothing is lost, the numbers live in the tracker.
+    </p>
+  </div>
+</div>
+
+<div class="rb" id="boardRoot" hidden>
   <div class="rb-wrap">
 
     <header class="masthead">
@@ -531,6 +598,7 @@
       <button type="button" class="ghostbtn" id="reloadBtn" hidden>
         <svg><use href="#ic-refresh"/></svg>Reload
       </button>
+      <button type="button" class="signout" id="signOutBtn">Sign out</button>
     </div>
 
     <section id="boardView" class="board" aria-label="Channels"></section>
@@ -629,30 +697,15 @@
 
   const REF_BASE = "https://rappn.ch/ref/";
 
-  /* The founder's own referral export, 10 August 2026. Real figures, not a mock-up.
-     `landing` is absent from it, which is itself the finding.                      */
-  const SNAPSHOT = {
-    label: "Referral export, 10 Aug 2026",
-    rows: [
-      { referral_code: "f-en", name: "FB Page EN", total_clicks: 8, swiss_clicks: 0, payout_per_swiss_click: 0 },
-      { referral_code: "f-fr", name: "FB Page FR", total_clicks: 8, swiss_clicks: 0, payout_per_swiss_click: 0 },
-      { referral_code: "f-it", name: "FB Page IT", total_clicks: 7, swiss_clicks: 0, payout_per_swiss_click: 0 },
-      { referral_code: "y-it", name: "YT Page IT", total_clicks: 4, swiss_clicks: 2, payout_per_swiss_click: 0 },
-      { referral_code: "y-en", name: "YT Page EN", total_clicks: 3, swiss_clicks: 1, payout_per_swiss_click: 0 },
-      { referral_code: "f-de", name: "FB Page DE", total_clicks: 1, swiss_clicks: 0, payout_per_swiss_click: 0 },
-      { referral_code: "i-de", name: "IG Page DE", total_clicks: 0, swiss_clicks: 0, payout_per_swiss_click: 0 },
-      { referral_code: "i-fr", name: "IG Page FR", total_clicks: 0, swiss_clicks: 0, payout_per_swiss_click: 0 },
-      { referral_code: "i-it", name: "IG Page IT", total_clicks: 0, swiss_clicks: 0, payout_per_swiss_click: 0 },
-      { referral_code: "i-en", name: "IG Page EN", total_clicks: 0, swiss_clicks: 0, payout_per_swiss_click: 0 },
-      { referral_code: "y-de", name: "YT Page DE", total_clicks: 0, swiss_clicks: 0, payout_per_swiss_click: 0 },
-      { referral_code: "y-fr", name: "YT Page FR", total_clicks: 0, swiss_clicks: 0, payout_per_swiss_click: 0 },
-      { referral_code: "l-en", name: "LI Page EN", total_clicks: 0, swiss_clicks: 0, payout_per_swiss_click: 0 }
-    ]
-  };
+  /* The founder's referral export of 10 August 2026, sealed.
+     AES-GCM ciphertext; the key is PBKDF2-SHA256 over account + password, so the figures
+     are unreadable without them and neither credential is stored anywhere in this file. */
+  const VAULT = {"v":1,"iter":250000,"salt":"+2id2GFh8Sbpxcl0qviN8A==","iv":"XFH/Qtd84LKTNteR","ct":"SlyHKLbHe3ssmMiNbzTFUn1B5fOf3jXY1H2LmAiHjBFJfRQP4nrnY3PJfaZTJHMCF1ZqOU5ri9sLSnsSKLZHXa+wJZMlDGeQZTJFcgaPR394gTE+o4p1INYdWHThFzCAJZHu3kMsBs3od/OK0sGDo0g76YayFy/cvHSwhMvYWTaELR0WnTg6m7OBhzGIQOx4Z9gL8HrzBq5siiV/P4zDxS7QDFmQX26uR8pghs/QkN6MxhfL7sPq55D/2oFTJKjzkNBWqFlJg5NK0YszJ9jYdNzJOVFemo3pxsp/wvwy4FjQGYqnrDF/AKcnu0NdvsrkTbPNnn9/mUsaeY7O7InqE6xjym0Qk7l8euDGScORt3x7ybENA5CHur5A7N2qAMti58Y9eiFsjDUq7xTOUbmFjUynwOR80F0ztIerMx3hZip0hlwpt8oGOeAq2dEx4+qk28EG+krOBsCdH31j5LHg2Ii+KPIWKW8ROEg8+kWypkP5vYDBl6f+ocgoivObd5/sIGSCuNh58+usZts2wiWUZebl15Mnq+DKFtM5/O0T9VCdxBbkYA5PLE3O4jrU/pnxhXdE1L/8Tr+TMO2ZF8JDk761//2vfTSh2KjkNHqKID92u4/YPhCOjV0qP8HJxGIiQDjKaXFEEXUJ77hiK3JgQP9+x6qLQdwCNpGR0sbrdB4E2Eo2aH5sDMCLNc2it+vp+xQZdCBbr/Mtj+W8WiNdXcTloHfSy2FIFcI2DZHkSUUdiJlxHMI6axBTjVEchLxR5shkViH3tT8JB/PknWmUIechEvPXokkUPQuoZCZuOn1TZZqNl9ARq14/Pp4kwlQsQjyanK16I7eR+8XJ3O2xsIRMFDNyjGJXW2+AYZFAs31a8opUN1lbxPvIlb1ops0NIhqO86uLZuXcBldhqj4R6qVeU+14Qfzq4RN6l+MQf67NfKyrk9tFUPlj+b3TTMWqEx2VeWk6xsM3/BZ8YneJ6hYo6S6oZ283LCvscj0IeRz1Hh9EmP/SW0kw4VzbNCQeBepEmkqh9E8avLxkoC8dPGYqJSZZhEVqpV8BTtJ8ZjmpaQIfLlwRxfwTcDRmWyH6m6JebnOTNrFnEfILWZfvVGKMjfJ4NgbQohHXjY/ATdWB5Idi1B1yK9JCRseQdo6GF5pAB5+uQ0RdcyiJK+v4O43nawvFgHFTRXLWkgShfqhkrbHogJdFWNdTJ7o6dSpxRacfuTHgDgwVUqG7DN0dVIwWbbB0SKhP1xEd3HbRNmBxhQWbYS5TuzoEyyOYeyQn4SN2th1ilptGX+69WoibLblreOQfocMYxe+je8SSKYp7ub/2SLknasB5j8sGYtMQE3rFFgXK1D7FAlaMb/V9CjS9PzPgv8YtWDsfagdjW/Fjl7L0NFwMlcWAnpD25Q9wgRHusrRNvOaSxDblWm5bC7l+UE8lWYJKCj3XNdqIrvvEnRMabQcyc+ITWAwUZLSa8RlFJmDX0uKchbr0IKkZLyZtp6vSfh5pyTgUDy117zU77HYleZp8sAaAYMyaEZl+zFPAHyZ98LiSBb3xl9oXu4s7MC/oah6Bg0gRnGssPqel6b/0VeRP5BNnY9LYMgq+6lL0OdoHQ7IWIzkhOrLjMpiC+SnUwiQQ/IW+0XS8Z9klpn/6OKF+cYeor+oK2WNonvjSB89essLMLN0JL6mhF3vvpY4VBBQSk8PKieD+HWBtoNgZstdF01ja5uqaodJFol7vKDpNrDrUi/mT52X0RwqO5Vm3WM6OwLm+VGSGquMENfA2wS6GF2tbqq19od+XzFh+ITbJyI1Vf3cUoYWo5QKJtafbSLRtatb4NxajZSFxLb9BPCwngJMKoFa9lqn6wm/Mm0+NcB8dy079X75LfZL9A1Sp+NNUjmA8UwOTemshuhnzrGS/c+YwdJsq+SjBm0uDdnbqDXGLszxi2iFVjiA="};
+  let SNAPSHOT = { label: "", rows: [] };   /* filled in on unlock */
 
   /* ───────── state ───────── */
-  const state = { view: "board", metric: "total", mode: "snapshot", label: SNAPSHOT.label,
-                  rows: SNAPSHOT.rows, sort: "total", dir: -1, extras: [] };
+  const state = { view: "board", metric: "total", mode: "snapshot", label: "",
+                  rows: [], sort: "total", dir: -1, extras: [] };
 
   const $  = (s) => document.querySelector(s);
   const el = (tag, cls, txt) => { const n = document.createElement(tag);
@@ -1083,8 +1136,83 @@
 
   $("#reloadBtn").addEventListener("click", goLive);
 
-  render();
-  goLive();
+  /* ───────── the gate ─────────
+     The board's figures ship as AES-GCM ciphertext. The account name and password are
+     folded into one PBKDF2 input, so the derived key only decrypts when both are right,
+     and a wrong credential fails on the GCM auth tag rather than on a comparison we
+     wrote. Nothing here checks a password against a stored value, because no stored
+     value exists.                                                                     */
+  const KEY_SLOT = "rappn_board_key";
+  /* NUL joins account and password into one KDF input. Built with fromCharCode so the
+     source stays pure ASCII: an escape here once arrived mangled and broke every login. */
+  const SEP = String.fromCharCode(0);
+  const b64ToBytes = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  const bytesToB64 = (b) => btoa(String.fromCharCode(...new Uint8Array(b)));
+
+  async function deriveKey(user, pass) {
+    const material = await crypto.subtle.importKey(
+      "raw", new TextEncoder().encode(user.trim().toLowerCase() + SEP + pass),
+      "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt: b64ToBytes(VAULT.salt), iterations: VAULT.iter, hash: "SHA-256" },
+      material, { name: "AES-GCM", length: 256 }, true, ["decrypt"]);
+  }
+
+  async function openVault(key) {
+    const plain = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: b64ToBytes(VAULT.iv) }, key, b64ToBytes(VAULT.ct));
+    return JSON.parse(new TextDecoder().decode(plain));
+  }
+
+  async function unlock(key, remember) {
+    SNAPSHOT = await openVault(key);                 /* throws if the key is wrong */
+    state.rows = SNAPSHOT.rows;
+    state.label = SNAPSHOT.label;
+    if (remember) {
+      try {
+        const raw = await crypto.subtle.exportKey("raw", key);
+        sessionStorage.setItem(KEY_SLOT, bytesToB64(raw));
+      } catch (e) { /* private mode; the session simply will not be remembered */ }
+    }
+    $("#gate").hidden = true;
+    $("#boardRoot").hidden = false;
+    render();
+    goLive();
+  }
+
+  $("#gateForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = $("#gateBtn"), msg = $("#gateMsg");
+    const user = $("#gateUser").value, pass = $("#gatePass").value;
+    msg.textContent = ""; btn.disabled = true; btn.textContent = "Checking…";
+    try {
+      await unlock(await deriveKey(user, pass), true);
+    } catch (err) {
+      msg.textContent = "That account and password do not open this board.";
+      btn.disabled = false; btn.textContent = "Open the board";
+      $("#gatePass").select();
+    }
+  });
+
+  $("#signOutBtn").addEventListener("click", () => {
+    try { sessionStorage.removeItem(KEY_SLOT); } catch (e) { /* nothing to clear */ }
+    location.reload();
+  });
+
+  /* resume a session in this tab without asking again */
+  (async () => {
+    let stored = null;
+    try { stored = sessionStorage.getItem(KEY_SLOT); } catch (e) { stored = null; }
+    if (!stored) { $("#gateUser").focus(); return; }
+    try {
+      const key = await crypto.subtle.importKey(
+        "raw", b64ToBytes(stored), { name: "AES-GCM", length: 256 }, true, ["decrypt"]);
+      await unlock(key, false);
+    } catch (e) {
+      try { sessionStorage.removeItem(KEY_SLOT); } catch (e2) { /* ignore */ }
+      $("#gateUser").focus();
+    }
+  })();
 })();
 </script>
 
